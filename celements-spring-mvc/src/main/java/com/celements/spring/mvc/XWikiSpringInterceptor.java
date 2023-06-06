@@ -6,29 +6,29 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 
-import com.celements.init.XWikiRequestInitializer;
+import com.celements.init.CelementsRequestFilter;
 
 @Component
 public class XWikiSpringInterceptor implements CelMvcInterceptor {
 
-  private final XWikiRequestInitializer xwikiRequestInitializer;
+  private final CelementsRequestFilter requestFilter;
 
   @Inject
-  public XWikiSpringInterceptor(XWikiRequestInitializer initializer) {
-    this.xwikiRequestInitializer = initializer;
+  public XWikiSpringInterceptor(CelementsRequestFilter requestFilter) {
+    this.requestFilter = requestFilter;
   }
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
       throws Exception {
-    xwikiRequestInitializer.init("spring", request, response);
+    requestFilter.preExecute("spring", request, response);
     return true;
   }
 
   @Override
   public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
       Object handler, Exception ex) throws Exception {
-    xwikiRequestInitializer.cleanup();
+    requestFilter.postExecute();
   }
 
 }

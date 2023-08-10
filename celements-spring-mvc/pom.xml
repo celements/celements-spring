@@ -28,7 +28,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>celements-spring-mvc</artifactId>
-  <version>6.0-SNAPSHOT</version>
+  <version>6.0</version>
   <description>Celements Spring MVC</description>
   <dependencies>
     <dependency>
@@ -41,5 +41,6 @@
     <connection>scm:git:git@github.com:celements/celements-spring.git</connection>
     <developerConnection>scm:git:git@github.com:celements/celements-spring.git</developerConnection>
     <url>https://github.com/celements/celements-spring/celements-spring-mvc</url>
+    <tag>celements-spring-mvc-6.0</tag>
   </scm>
 </project>

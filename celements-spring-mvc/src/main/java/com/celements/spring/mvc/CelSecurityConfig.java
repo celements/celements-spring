@@ -13,12 +13,13 @@ public class CelSecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     // TODO extract config variables
-    var iamHost = "http://iam1.srv-inter.net";
+    var iamHost = "http://iam1.srv-inter.net:8080";
     var realmName = "alu";
     http
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2
-            .jwt(jwt -> jwt.jwkSetUri(iamHost + "/auth/realms/" + realmName
+            .jwt(jwt -> jwt.jwkSetUri(iamHost
+                + "/auth/realms/" + realmName
                 + "/protocol/openid-connect/certs")));
     return http.build();
   }

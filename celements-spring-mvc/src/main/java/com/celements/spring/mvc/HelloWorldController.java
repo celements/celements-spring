@@ -35,4 +35,10 @@ public class HelloWorldController {
         .getContext()
         .getProperty(XWikiContext.EXECUTIONCONTEXT_KEY);
   }
+
+  @GetMapping("/webjars/test")
+  public String testWebjars() {
+    return "webjars reached";
+  }
+
 }

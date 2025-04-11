@@ -4,6 +4,8 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -15,6 +17,8 @@ import com.google.common.collect.ImmutableList;
 @Configuration
 @EnableWebMvc
 public class CelMvcConfig implements WebMvcConfigurer {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CelMvcConfig.class);
 
   private final List<CelMvcInterceptor> interceptors;
 
@@ -30,6 +34,7 @@ public class CelMvcConfig implements WebMvcConfigurer {
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    LOGGER.warn("addResourceHandlers in CelMvcConfig start");
     // Required for serving the main UI HTML page
     registry.addResourceHandler("/swagger-ui.html")
         .addResourceLocations("classpath:/META-INF/resources/");
@@ -37,5 +42,7 @@ public class CelMvcConfig implements WebMvcConfigurer {
     // Required for serving CSS/JS/fonts/images used by the UI
     registry.addResourceHandler("/webjars/**")
         .addResourceLocations("classpath:/META-INF/resources/webjars/");
+
+    LOGGER.warn("addResourceHandlers in CelMvcConfig end");
   }
 }

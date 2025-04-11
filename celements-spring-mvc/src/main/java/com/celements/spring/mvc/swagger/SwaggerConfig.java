@@ -4,7 +4,6 @@ import static com.google.common.base.Predicates.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
@@ -44,11 +43,10 @@ public class SwaggerConfig {
   }
 
   private Predicate<RequestHandler> getBasePackages() {
-    Stream<RequestHandlerPackage> theStream = reqHandlerPackageList.stream();
-    Stream<Predicate<RequestHandler>> basePkgStream = theStream
-        .map(basePkg -> RequestHandlerSelectors.basePackage(basePkg.basePackage()));
-    List<Predicate<RequestHandler>> basePkgList = basePkgStream
-        .collect(Collectors.toList());
-    return or(basePkgList);
+    return or(reqHandlerPackageList.stream()
+        .flatMap(basePkg -> basePkg.basePackages().stream())
+        .map(RequestHandlerSelectors::basePackage)
+        .collect(Collectors.toList()));
   }
+
 }

@@ -1,7 +1,9 @@
 package com.celements.spring.mvc.swagger;
 
+import java.util.List;
+
 public interface RequestHandlerPackage {
 
-  String basePackage();
+  List<String> basePackages();
 
 }

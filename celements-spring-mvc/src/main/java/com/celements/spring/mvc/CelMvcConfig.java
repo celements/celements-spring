@@ -6,11 +6,15 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import com.google.common.collect.ImmutableList;
 
@@ -44,5 +48,14 @@ public class CelMvcConfig implements WebMvcConfigurer {
         .addResourceLocations("classpath:/META-INF/resources/webjars/");
 
     LOGGER.warn("addResourceHandlers in CelMvcConfig end");
+  }
+
+  @Bean
+  public ApplicationListener<ContextRefreshedEvent> mappingPrinter(
+      RequestMappingHandlerMapping mapping) {
+    return event -> {
+      LOGGER.warn("Registered Mappings:");
+      mapping.getHandlerMethods().forEach((key, value) -> LOGGER.warn(" → {}", key));
+    };
   }
 }

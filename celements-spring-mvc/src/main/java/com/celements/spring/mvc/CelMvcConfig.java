@@ -52,10 +52,11 @@ public class CelMvcConfig implements WebMvcConfigurer {
 
   @Bean
   public ApplicationListener<ContextRefreshedEvent> mappingPrinter(
-      RequestMappingHandlerMapping mapping) {
+      List<RequestMappingHandlerMapping> mappingList) {
     return event -> {
       LOGGER.warn("Registered Mappings:");
-      mapping.getHandlerMethods().forEach((key, value) -> LOGGER.warn(" → {}", key));
+      mappingList.stream().forEach(mapping -> mapping.getHandlerMethods()
+          .forEach((key, value) -> LOGGER.warn(" → {}", key)));
     };
   }
 }

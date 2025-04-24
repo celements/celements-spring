@@ -2,7 +2,6 @@ package com.celements.spring.mvc;
 
 import java.util.List;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -25,19 +24,10 @@ public class CelMvcConfig implements WebMvcConfigurer {
   private static final Logger LOGGER = LoggerFactory.getLogger(CelMvcConfig.class);
 
   private final List<CelMvcInterceptor> interceptors;
-  private final RequestMappingHandlerMapping requestMappingHandlerMapping;
 
   @Inject
-  public CelMvcConfig(List<CelMvcInterceptor> interceptors,
-      RequestMappingHandlerMapping requestMappingHandlerMapping) {
+  public CelMvcConfig(List<CelMvcInterceptor> interceptors) {
     this.interceptors = ImmutableList.copyOf(interceptors);
-    this.requestMappingHandlerMapping = requestMappingHandlerMapping;
-  }
-
-  @PostConstruct
-  public void logAllSpringMappings() {
-    requestMappingHandlerMapping.getHandlerMethods()
-        .forEach((key, value) -> LOGGER.warn("Mapped path: {}", key));
   }
 
   @Override

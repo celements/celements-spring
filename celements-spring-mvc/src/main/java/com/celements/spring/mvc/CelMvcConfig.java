@@ -8,15 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springdoc.core.SpringDocConfigProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import com.google.common.collect.ImmutableList;
 
@@ -43,22 +39,4 @@ public class CelMvcConfig implements WebMvcConfigurer {
     LOGGER.trace("addInterceptors: size {}", interceptors.size());
     interceptors.forEach(registry::addInterceptor);
   }
-
-  @Bean
-  public ApplicationListener<ContextRefreshedEvent> printAllMappings(
-      RequestMappingHandlerMapping mapping) {
-    return event -> {
-      LOGGER.warn("-> Registered Spring Mappings:");
-      mapping.getHandlerMethods().forEach((key, value) -> LOGGER.warn(" → {}", key));
-    };
-  }
-
-  /**
-   * Manually register the SpringDocConfigProperties so that
-   * SpringDocConfiguration can inject it.
-   */
-  // @Bean
-  // public SpringDocConfigProperties springDocConfigProperties() {
-  // return new org.springdoc.core.SpringDocConfigProperties();
-  // }
 }

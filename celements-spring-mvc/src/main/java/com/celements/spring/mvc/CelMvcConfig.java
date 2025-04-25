@@ -19,11 +19,12 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import com.google.common.collect.ImmutableList;
 
 @Configuration
+@EnableWebMvc
 @Import({
     org.springdoc.core.SpringDocConfiguration.class,
     org.springdoc.webmvc.core.SpringDocWebMvcConfiguration.class
 })
-@EnableWebMvc
+// @ComponentScan("org.springdoc.core")
 public class CelMvcConfig implements WebMvcConfigurer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CelMvcConfig.class);
@@ -48,5 +49,14 @@ public class CelMvcConfig implements WebMvcConfigurer {
       LOGGER.warn("-> Registered Spring Mappings:");
       mapping.getHandlerMethods().forEach((key, value) -> LOGGER.warn(" → {}", key));
     };
+  }
+
+  /**
+   * Manually register the SpringDocConfigProperties so that
+   * SpringDocConfiguration can inject it.
+   */
+  @Bean
+  public org.springdoc.core.SpringDocConfigProperties springDocConfigProperties() {
+    return new org.springdoc.core.SpringDocConfigProperties();
   }
 }

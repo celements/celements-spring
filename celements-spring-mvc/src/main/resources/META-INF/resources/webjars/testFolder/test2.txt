@@ -1,2 +1,0 @@
-This is the test2.txt text file in the subfolder testFolder.
-Where the brown fox jumps over a lazy dog.

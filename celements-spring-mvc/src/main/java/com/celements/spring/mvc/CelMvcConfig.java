@@ -6,6 +6,8 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springdoc.core.SpringDocConfigProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,11 +22,11 @@ import com.google.common.collect.ImmutableList;
 
 @Configuration
 @EnableWebMvc
+@EnableConfigurationProperties(SpringDocConfigProperties.class)
 @Import({
     org.springdoc.core.SpringDocConfiguration.class,
     org.springdoc.webmvc.core.SpringDocWebMvcConfiguration.class
 })
-// @ComponentScan("org.springdoc.core")
 public class CelMvcConfig implements WebMvcConfigurer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CelMvcConfig.class);
@@ -55,8 +57,8 @@ public class CelMvcConfig implements WebMvcConfigurer {
    * Manually register the SpringDocConfigProperties so that
    * SpringDocConfiguration can inject it.
    */
-  @Bean
-  public org.springdoc.core.SpringDocConfigProperties springDocConfigProperties() {
-    return new org.springdoc.core.SpringDocConfigProperties();
-  }
+  // @Bean
+  // public SpringDocConfigProperties springDocConfigProperties() {
+  // return new org.springdoc.core.SpringDocConfigProperties();
+  // }
 }

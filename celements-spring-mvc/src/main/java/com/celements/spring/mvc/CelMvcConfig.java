@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -18,6 +19,10 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import com.google.common.collect.ImmutableList;
 
 @Configuration
+@Import({
+    org.springdoc.core.SpringDocConfiguration.class,
+    org.springdoc.webmvc.core.SpringDocWebMvcConfiguration.class
+})
 @EnableWebMvc
 public class CelMvcConfig implements WebMvcConfigurer {
 

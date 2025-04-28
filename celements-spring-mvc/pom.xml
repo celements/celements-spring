@@ -36,6 +36,13 @@
       <artifactId>spring-webmvc</artifactId>
       <scope>provided</scope>
     </dependency>
+
+    <!-- open API / swagger -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-webmvc-core</artifactId>
+      <version>1.8.0</version>
+    </dependency>
   </dependencies>
   <scm>
     <connection>scm:git:git@github.com:celements/celements-spring.git</connection>

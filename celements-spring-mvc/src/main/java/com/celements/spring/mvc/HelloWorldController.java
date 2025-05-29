@@ -33,4 +33,5 @@ public class HelloWorldController {
         .get(XWikiExecutionProp.XWIKI_CONTEXT)
         .orElseThrow();
   }
+
 }

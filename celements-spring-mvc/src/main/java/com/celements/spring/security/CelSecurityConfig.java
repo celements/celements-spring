@@ -6,8 +6,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -43,15 +41,7 @@ public class CelSecurityConfig {
   public WebSecurityCustomizer webSecurityCustomizer() {
     return (web) -> web
         .ignoring()
-        .antMatchers("/favicon.ico", "/static/**", "/swagger-ui/**", "/v3/api-docs/**");
-  }
-
-  // 3) Point Spring Security at Keycloak’s JWKS endpoint
-  @Bean
-  public JwtDecoder jwtDecoder() {
-    // TODO read from config KEYCLOAK-HOST and REALM
-    String jwkSetUri = "https://<KEYCLOAK-HOST>/auth/realms/<REALM>/protocol/openid-connect/certs";
-    return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        .antMatchers("/favicon.ico", "/api/v3/api-docs");
   }
 
   // 4) Map Keycloak realm roles into Spring authorities

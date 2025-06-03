@@ -16,6 +16,7 @@ import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.model.context.ModelContext;
 import com.google.common.base.Strings;
+import com.xpn.xwiki.XWikiConstant;
 
 @Component
 public class KeycloakService implements IdentityServer {
@@ -44,12 +45,12 @@ public class KeycloakService implements IdentityServer {
   public String getRealm() {
     return Optional
         .ofNullable(Strings.emptyToNull(configSource.getProperty("celements.keykloak.realm")))
-        .orElse(context.getWikiRef().getName());
+        .orElse(XWikiConstant.MAIN_WIKI.getName());
   }
 
   @Bean
   public JwtDecoder jwtDecoder() {
-    LOGGER.info("jwtDecoder called for {}, {}", defer(() -> getHost()), defer(() -> getRealm()));
+    LOGGER.info("jwtDecoder called for {}, {}", defer(this::getHost), defer(this::getRealm));
     String jwkSetUri = "https://" + getHost() + "/auth/realms/" + getRealm()
         + "/protocol/openid-connect/certs";
     return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();

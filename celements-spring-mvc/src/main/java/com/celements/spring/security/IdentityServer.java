@@ -1,11 +1,13 @@
 package com.celements.spring.security;
 
-import java.util.Optional;
+import javax.validation.constraints.NotEmpty;
 
 public interface IdentityServer {
 
-  Optional<String> getHost();
+  @NotEmpty
+  String getHost();
 
+  @NotEmpty
   String getRealm();
 
 }

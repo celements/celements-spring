@@ -34,9 +34,10 @@ public class KeycloakService implements IdentityServer {
   }
 
   @Override
-  public Optional<String> getHost() {
+  public String getHost() {
     return Optional
-        .ofNullable(Strings.emptyToNull(configSource.getProperty("celements.keykloak.host")));
+        .ofNullable(Strings.emptyToNull(configSource.getProperty("celements.keykloak.host")))
+        .orElse("localhost");
   }
 
   @Override
@@ -48,9 +49,8 @@ public class KeycloakService implements IdentityServer {
 
   @Bean
   public JwtDecoder jwtDecoder() {
-    LOGGER.info("jwtDecoder called for {}, {}", defer(() -> getHost().orElse("null")), getRealm());
-    String jwkSetUri = "https://" + getHost().orElseThrow()
-        + "/auth/realms/" + getRealm()
+    LOGGER.info("jwtDecoder called for {}, {}", defer(() -> getHost()), defer(() -> getRealm()));
+    String jwkSetUri = "https://" + getHost() + "/auth/realms/" + getRealm()
         + "/protocol/openid-connect/certs";
     return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
   }

@@ -9,12 +9,12 @@ import org.springframework.stereotype.Component;
 import com.celements.init.CelementsRequestFilter;
 
 @Component
-public class CelelemntsSpringInterceptor implements CelMvcInterceptor {
+public class CelementsSpringInterceptor implements CelMvcInterceptor {
 
   private final CelementsRequestFilter requestFilter;
 
   @Inject
-  public CelelemntsSpringInterceptor(CelementsRequestFilter requestFilter) {
+  public CelementsSpringInterceptor(CelementsRequestFilter requestFilter) {
     this.requestFilter = requestFilter;
   }
 

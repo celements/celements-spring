@@ -16,6 +16,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -48,7 +50,11 @@ public class CelSecurityConfig {
         // configure JWT-based OAuth2 Resource Server support
         .oauth2ResourceServer(oauth2 -> oauth2
             .jwt(jwt -> jwt
-                .jwtAuthenticationConverter(jwtAuthConverter())));
+                .jwtAuthenticationConverter(jwtAuthConverter())))
+        // (5) Make sure missing token → 401 (instead of falling through to your controller):
+        .exceptionHandling(exceptions -> exceptions
+            .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
+            .accessDeniedHandler(new BearerTokenAccessDeniedHandler()));
     return http.build();
   }
 

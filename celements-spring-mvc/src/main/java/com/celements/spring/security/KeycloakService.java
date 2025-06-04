@@ -4,11 +4,13 @@ import java.util.Optional;
 
 import javax.inject.Inject;
 
+import org.springframework.stereotype.Component;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.google.common.base.Strings;
 import com.xpn.xwiki.XWikiConstant;
 
+@Component
 public class KeycloakService implements IdentityServer {
 
   private final ConfigurationSource configSource;

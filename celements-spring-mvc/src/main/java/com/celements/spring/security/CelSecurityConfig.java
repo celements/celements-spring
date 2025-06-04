@@ -1,11 +1,19 @@
 package com.celements.spring.security;
 
+import static com.celements.logging.LogUtils.*;
+
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -13,6 +21,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class CelSecurityConfig {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityConfig.class);
+
+  private final IdentityServer identitySrv;
+
+  @Inject
+  public CelSecurityConfig(IdentityServer identityServer) {
+    this.identitySrv = identityServer;
+  }
 
   // 1) Define your SecurityFilterChain bean
   @Bean
@@ -33,6 +50,16 @@ public class CelSecurityConfig {
             .jwt(jwt -> jwt
                 .jwtAuthenticationConverter(jwtAuthConverter())));
     return http.build();
+  }
+
+  // 3) Point Spring Security at Keycloak’s JWKS endpoint
+  @Bean
+  public JwtDecoder jwtDecoder() {
+    LOGGER.info("jwtDecoder called for {}, {}", defer(identitySrv::getHost),
+        defer(identitySrv::getRealm));
+    String jwkSetUri = "https://" + identitySrv.getHost() + "/auth/realms/" + identitySrv.getRealm()
+        + "/protocol/openid-connect/certs";
+    return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
   }
 
   // 2) (Optional) If there are static resources or swagger UI you truly want Spring Security to

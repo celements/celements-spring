@@ -1,37 +1,21 @@
 package com.celements.spring.security;
 
-import static com.celements.logging.LogUtils.*;
-
 import java.util.Optional;
 
 import javax.inject.Inject;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.stereotype.Component;
 import org.xwiki.configuration.ConfigurationSource;
 
-import com.celements.model.context.ModelContext;
 import com.google.common.base.Strings;
 import com.xpn.xwiki.XWikiConstant;
 
-@Component
 public class KeycloakService implements IdentityServer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakService.class);
-
   private final ConfigurationSource configSource;
-  private final ModelContext context;
 
   @Inject
-  public KeycloakService(
-      ConfigurationSource configSource,
-      ModelContext context) {
+  public KeycloakService(ConfigurationSource configSource) {
     this.configSource = configSource;
-    this.context = context;
   }
 
   @Override
@@ -46,14 +30,6 @@ public class KeycloakService implements IdentityServer {
     return Optional
         .ofNullable(Strings.emptyToNull(configSource.getProperty("celements.keykloak.realm")))
         .orElse(XWikiConstant.MAIN_WIKI.getName());
-  }
-
-  @Bean
-  public JwtDecoder jwtDecoder() {
-    LOGGER.info("jwtDecoder called for {}, {}", defer(this::getHost), defer(this::getRealm));
-    String jwkSetUri = "https://" + getHost() + "/auth/realms/" + getRealm()
-        + "/protocol/openid-connect/certs";
-    return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
   }
 
 }

@@ -1,7 +1,5 @@
 package com.celements.spring.security;
 
-import java.util.Optional;
-
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -11,7 +9,6 @@ import org.springframework.stereotype.Component;
 import org.xwiki.configuration.ConfigurationSource;
 
 import com.celements.configuration.CelementsAllConfigurationSource;
-import com.google.common.base.Strings;
 import com.xpn.xwiki.XWikiConstant;
 
 @Component
@@ -31,16 +28,12 @@ public class KeycloakService implements IdentityServer {
 
   @Override
   public String getHost() {
-    return Optional
-        .ofNullable(Strings.emptyToNull(configSource.getProperty("celements.keykloak.host")))
-        .orElse("localhost");
+    return configSource.getProperty("celements.keycloak.host", "localhost");
   }
 
   @Override
   public String getRealm() {
-    return Optional
-        .ofNullable(Strings.emptyToNull(configSource.getProperty("celements.keykloak.realm")))
-        .orElse(XWikiConstant.MAIN_WIKI.getName());
+    return configSource.getProperty("celements.keycloak.realm", XWikiConstant.MAIN_WIKI.getName());
   }
 
 }

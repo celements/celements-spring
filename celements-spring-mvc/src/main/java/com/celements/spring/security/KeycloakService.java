@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.xwiki.configuration.ConfigurationSource;
 
-import com.celements.configuration.CelementsAllPropertiesConfigurationSource;
+import com.celements.configuration.CelementsAllConfigurationSource;
 import com.google.common.base.Strings;
 import com.xpn.xwiki.XWikiConstant;
 
@@ -23,9 +23,10 @@ public class KeycloakService implements IdentityServer {
 
   @Inject
   public KeycloakService(
-      @Named(CelementsAllPropertiesConfigurationSource.NAME) ConfigurationSource configSource) {
+      @Named(CelementsAllConfigurationSource.NAME) ConfigurationSource configSource) {
     this.configSource = configSource;
-    LOGGER.info("KeycloakService constructor: {}", configSource.getClass());
+    LOGGER.info("KeycloakService constructor: {} host={}, realm={}", configSource.getClass(),
+        getHost(), getRealm());
   }
 
   @Override

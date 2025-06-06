@@ -52,9 +52,7 @@ public class CelSecurityConfig {
     LOGGER.info("securityFilterChain called for {}, {}", defer(identitySrv::getHost),
         defer(identitySrv::getRealm));
     http
-        // disable CSRF for stateless REST APIs
         .csrf().disable()
-        // stateless session management
         .sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
@@ -62,11 +60,8 @@ public class CelSecurityConfig {
         .authorizeHttpRequests(authorize -> authorize
             .antMatchers("/api/public/**").permitAll()
             .anyRequest().authenticated())
-        // configure JWT-based OAuth2 Resource Server support
         .oauth2ResourceServer(oauth2 -> oauth2
-            .jwt(jwt -> jwt
-                .jwtAuthenticationConverter(jwtAuthConverter())))
-        // (5) Make sure missing token → 401 (instead of falling through to your controller):
+            .authenticationManagerResolver(authenticationManagerResolver()))
         .exceptionHandling(exceptions -> exceptions
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
             .accessDeniedHandler(new BearerTokenAccessDeniedHandler()));

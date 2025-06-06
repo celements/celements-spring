@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -30,13 +29,6 @@ public class ExecutionContextFilter implements Filter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionContextFilter.class);
 
-  private final CelementsRequestFilter requestFilter;
-
-  @Inject
-  public ExecutionContextFilter(CelementsRequestFilter requestFilter) {
-    this.requestFilter = requestFilter;
-  }
-
   @Override
   public void init(FilterConfig filterConfig) throws ServletException {
     // No initialization needed
@@ -46,6 +38,7 @@ public class ExecutionContextFilter implements Filter {
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     Execution execution = getBeanFactory().getBean(Execution.class);
+    CelementsRequestFilter requestFilter = getBeanFactory().getBean(CelementsRequestFilter.class);
     try {
       LOGGER.debug("setup execution context for request {}",
           defer(() -> getRequestUrl(request).orElse("'no HttpServletRequest'")));

@@ -36,6 +36,8 @@ public class CelSecurityConfig {
   // 1) Define your SecurityFilterChain bean
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    LOGGER.info("securityFilterChain called for {}, {}", defer(identitySrv::getHost),
+        defer(identitySrv::getRealm));
     http
         // disable CSRF for stateless REST APIs
         .csrf().disable()

@@ -1,12 +1,24 @@
 package com.celements.spring.security;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.stereotype.Component;
 import org.xwiki.configuration.ConfigurationSource;
+import org.xwiki.model.reference.WikiReference;
 
 import com.celements.configuration.CelementsFromWikiConfigurationSource;
 import com.xpn.xwiki.XWikiConstant;
@@ -15,6 +27,8 @@ import com.xpn.xwiki.XWikiConstant;
 public class KeycloakService implements IdentityServer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakService.class);
+
+  private final Map<String, AuthenticationManager> authManagerCache = new ConcurrentHashMap<>();
 
   private final ConfigurationSource configSource;
 
@@ -27,13 +41,41 @@ public class KeycloakService implements IdentityServer {
   }
 
   @Override
+  @NotEmpty
   public String getHost() {
     return configSource.getProperty("celements.keycloak.host", "localhost");
   }
 
   @Override
+  @NotEmpty
   public String getRealm() {
     return configSource.getProperty("celements.keycloak.realm", XWikiConstant.MAIN_WIKI.getName());
   }
 
+  @Override
+  @NotNull
+  public AuthenticationManager getAuthenticationManagerForWiki(WikiReference wikiRef) {
+    return authManagerCache.computeIfAbsent(wikiRef.getName(),
+        this::buildAuthenticationManagerForWiki);
+  }
+
+  private AuthenticationManager buildAuthenticationManagerForWiki(String wikiName) {
+    String jwkSetUri = "https://" + getHost() + "/realms/" + getRealm()
+        + "/protocol/openid-connect/certs";
+    LOGGER.info("Building JwtDecoder for wikiName={}, jwkSetUri={}", wikiName, jwkSetUri);
+    JwtAuthenticationProvider provider = new JwtAuthenticationProvider(
+        NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build());
+    provider.setJwtAuthenticationConverter(jwtAuthConverter());
+    return new ProviderManager(provider);
+  }
+
+  private JwtAuthenticationConverter jwtAuthConverter() {
+    JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+    authoritiesConverter.setAuthoritiesClaimName("realm_access.roles");
+    authoritiesConverter.setAuthorityPrefix("ROLE_");
+
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+    return converter;
+  }
 }

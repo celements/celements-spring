@@ -2,9 +2,6 @@ package com.celements.spring.security;
 
 import static com.celements.logging.LogUtils.*;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 
@@ -13,17 +10,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
-import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
@@ -40,8 +31,6 @@ public class CelSecurityConfig {
   private final IdentityServer identitySrv;
   private final ModelContext context;
 
-  private final Map<String, JwtDecoder> decoderCache = new ConcurrentHashMap<>();
-
   @Inject
   public CelSecurityConfig(IdentityServer identityServer, ModelContext context) {
     this.identitySrv = identityServer;
@@ -57,7 +46,6 @@ public class CelSecurityConfig {
         .sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
-        // URL authorization rules
         .authorizeHttpRequests(authorize -> authorize
             .antMatchers("/api/public/**").permitAll()
             .anyRequest().authenticated())
@@ -69,49 +57,10 @@ public class CelSecurityConfig {
     return http.build();
   }
 
-  /**
-   * Inspect the HttpServletRequest (e.g. request.getServerName()) and return an
-   * AuthenticationManager
-   * that knows how to validate the Bearer token for that domain. Internally, it builds (or reuses)
-   * a JwtDecoder that points at the Keycloak JWK-Set URI for that domain, then wraps it in a
-   * JwtAuthenticationProvider. Finally, it returns a simple ProviderManager that only contains that
-   * one provider.
-   */
   @Bean
   public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver() {
-    return (HttpServletRequest request) -> {
-      // Here we pick a "tenant" or "domain" key. You can also look at a custom header if needed.
-      String domain = request.getServerName();
-      LOGGER.info("Resolving AuthenticationManager for domain: {} and database={}", domain,
-          context.getXWikiContext().getDatabase());
-
-      // Look up (or build and cache) the JwtDecoder for this domain
-      JwtDecoder jwtDecoder = decoderCache.computeIfAbsent(domain, this::buildJwtDecoderForDomain);
-
-      // Create a JwtAuthenticationProvider that uses this decoder + our converter
-      JwtAuthenticationProvider provider = new JwtAuthenticationProvider(jwtDecoder);
-      provider.setJwtAuthenticationConverter(jwtAuthConverter());
-
-      // Wrap it in a ProviderManager (which implements AuthenticationManager)
-      return new ProviderManager(provider);
-    };
-  }
-
-  /**
-   * Build a NimbusJwtDecoder for the given domain. You decide how to map "domain" → Keycloak
-   * host/realm.
-   */
-  private JwtDecoder buildJwtDecoderForDomain(String domain) {
-    // Here we delegate to your existing IdentityServer logic, but passing the domain
-    // You might look up a map of domain → (host, realm), or change identitySrv so that
-    // it reacts to a "current domain" context. For demonstration, assume identitySrv
-    // uses the domain internally to pick the correct host & realm.
-    String host = identitySrv.getHost();
-    String realm = identitySrv.getRealm();
-    String jwkSetUri = "https://" + host + "/realms/" + realm + "/protocol/openid-connect/certs";
-    LOGGER.info("Building JwtDecoder for domain={}, host={}, realm={}, jwkSetUri={}", domain, host,
-        realm, jwkSetUri);
-    return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+    // Uses only thread-local ExecutionContext; request is ignored.
+    return request -> identitySrv.getAuthenticationManagerForWiki(context.getWikiRef());
   }
 
   @Bean
@@ -121,13 +70,4 @@ public class CelSecurityConfig {
         .antMatchers("/favicon.ico", "/api/v3/api-docs");
   }
 
-  private JwtAuthenticationConverter jwtAuthConverter() {
-    JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    authoritiesConverter.setAuthoritiesClaimName("realm_access.roles");
-    authoritiesConverter.setAuthorityPrefix("ROLE_");
-
-    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-    converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-    return converter;
-  }
 }

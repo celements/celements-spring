@@ -1,5 +1,6 @@
 package com.celements.spring.mvc;
 
+import javax.annotation.security.PermitAll;
 import javax.inject.Inject;
 
 import org.springframework.beans.factory.BeanFactory;
@@ -21,6 +22,7 @@ public class HelloWorldController {
   }
 
   @GetMapping("/helloworld")
+  @PermitAll
   public String helloWorld() {
     return "Hello World!";
   }

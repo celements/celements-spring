@@ -46,7 +46,6 @@ public class CelSecurityConfig {
     this.context = context;
   }
 
-  // 1) Define your SecurityFilterChain bean
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     LOGGER.info("securityFilterChain called for {}, {}", defer(identitySrv::getHost),
@@ -107,11 +106,9 @@ public class CelSecurityConfig {
     // uses the domain internally to pick the correct host & realm.
     String host = identitySrv.getHost();
     String realm = identitySrv.getRealm();
-    String jwkSetUri = "https://" + host + "/auth/realms/" + realm
-        + "/protocol/openid-connect/certs";
+    String jwkSetUri = "https://" + host + "/realms/" + realm + "/protocol/openid-connect/certs";
     LOGGER.info("Building JwtDecoder for domain={}, host={}, realm={}, jwkSetUri={}", domain, host,
         realm, jwkSetUri);
-
     return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
   }
 
@@ -122,7 +119,6 @@ public class CelSecurityConfig {
         .antMatchers("/favicon.ico", "/api/v3/api-docs");
   }
 
-  // 4) Map Keycloak realm roles into Spring authorities
   private JwtAuthenticationConverter jwtAuthConverter() {
     JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
     authoritiesConverter.setAuthoritiesClaimName("realm_access.roles");

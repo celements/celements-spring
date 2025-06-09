@@ -31,8 +31,8 @@
   <version>6.2-SNAPSHOT</version>
   <description>Celements Spring MVC</description>
   <properties>
-<!--    <spring.security.version>5.8.16</spring.security.version>-->
-    <!-- match your Spring Security version -->
+    <!-- Spring Security 5.7.x is a rock-solid, API-stable branch
+    that aligns perfectly with Spring 5.3. -->
     <spring.security.version>5.7.12</spring.security.version>
   </properties>
   <dependencies>
@@ -55,6 +55,7 @@
       <artifactId>springdoc-openapi-webmvc-core</artifactId>
       <version>1.8.0</version>
     </dependency>
+
     <!-- core Spring Security -->
     <dependency>
       <groupId>org.springframework.security</groupId>

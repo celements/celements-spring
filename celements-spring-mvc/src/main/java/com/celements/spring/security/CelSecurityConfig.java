@@ -107,10 +107,11 @@ public class CelSecurityConfig {
     // uses the domain internally to pick the correct host & realm.
     String host = identitySrv.getHost();
     String realm = identitySrv.getRealm();
-    LOGGER.info("Building JwtDecoder for domain={}, host={}, realm={}", domain, host, realm);
-
     String jwkSetUri = "https://" + host + "/auth/realms/" + realm
         + "/protocol/openid-connect/certs";
+    LOGGER.info("Building JwtDecoder for domain={}, host={}, realm={}, jwkSetUri={}", domain, host,
+        realm, jwkSetUri);
+
     return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
   }
 

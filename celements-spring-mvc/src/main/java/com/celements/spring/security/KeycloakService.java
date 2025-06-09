@@ -1,8 +1,12 @@
 package com.celements.spring.security;
 
+import static com.celements.logging.LogUtils.*;
+
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.validation.constraints.NotEmpty;
@@ -18,10 +22,18 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.stereotype.Component;
 import org.xwiki.configuration.ConfigurationSource;
+import org.xwiki.model.reference.ClassReference;
 import org.xwiki.model.reference.WikiReference;
+import org.xwiki.observation.event.Event;
 
+import com.celements.common.observation.listener.AbstractLocalEventListener;
 import com.celements.configuration.CelementsFromWikiConfigurationSource;
+import com.celements.model.reference.RefBuilder;
+import com.celements.observation.save.SaveEventOperation;
+import com.celements.observation.save.object.ObjectEvent;
+import com.google.common.base.Objects;
 import com.xpn.xwiki.XWikiConstant;
+import com.xpn.xwiki.doc.XWikiDocument;
 
 @Component
 public class KeycloakService implements IdentityServer {
@@ -53,6 +65,13 @@ public class KeycloakService implements IdentityServer {
   }
 
   @Override
+  @NotEmpty
+  public String getJwkSetUri() {
+    return "https://" + getHost() + "/realms/" + getRealm()
+        + "/protocol/openid-connect/certs";
+  }
+
+  @Override
   @NotNull
   public AuthenticationManager getAuthenticationManagerForWiki(WikiReference wikiRef) {
     return authManagerCache.computeIfAbsent(wikiRef.getName(),
@@ -60,11 +79,10 @@ public class KeycloakService implements IdentityServer {
   }
 
   private AuthenticationManager buildAuthenticationManagerForWiki(String wikiName) {
-    String jwkSetUri = "https://" + getHost() + "/realms/" + getRealm()
-        + "/protocol/openid-connect/certs";
-    LOGGER.info("Building JwtDecoder for wikiName={}, jwkSetUri={}", wikiName, jwkSetUri);
+    LOGGER.info("Building JwtDecoder for wikiName={}, jwkSetUri={}", wikiName,
+        defer(this::getJwkSetUri));
     JwtAuthenticationProvider provider = new JwtAuthenticationProvider(
-        NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build());
+        NimbusJwtDecoder.withJwkSetUri(getJwkSetUri()).build());
     provider.setJwtAuthenticationConverter(jwtAuthConverter());
     return new ProviderManager(provider);
   }
@@ -77,5 +95,47 @@ public class KeycloakService implements IdentityServer {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
     converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
     return converter;
+  }
+
+  @Component(AuthCacheInvalidationListener.NAME)
+  public class AuthCacheInvalidationListener
+      extends AbstractLocalEventListener<XWikiDocument, Object> {
+
+    public static final String NAME = "keycloakServiceAuthCacheInvalidationListener";
+
+    private final Logger logger = LoggerFactory.getLogger(AuthCacheInvalidationListener.class);
+
+    @Override
+    public List<Event> getEvents() {
+      logger.info("getEvents: registering for document update events.");
+      return List.of(
+          new ObjectEvent(SaveEventOperation.CREATED, getXWikiPreferencesClassRef()),
+          new ObjectEvent(SaveEventOperation.UPDATED, getXWikiPreferencesClassRef()));
+    }
+
+    @Override
+    public String getName() {
+      return NAME;
+    }
+
+    private ClassReference getXWikiPreferencesClassRef() {
+      return RefBuilder.create().space(XWikiConstant.XWIKI_SPACE)
+          .doc(XWikiConstant.XWIKI_PREF_DOC_NAME).build(ClassReference.class);
+    }
+
+    @Override
+    protected void onEventInternal(@NotNull Event event, @NotNull XWikiDocument changedDoc,
+        @Nullable Object data) {
+      if (Objects.equal(changedDoc.getDocumentReference(),
+          context.getXWikiPreferencesDocRef())) {
+        logger.trace("changes on {} saved. Invalidating authentication manager cache",
+            changedDoc.getDocumentReference());
+        authManagerCache.remove(changedDoc.getWikiRef().getName());
+      } else {
+        logger.trace("changes on {} saved. NOT invalidating authentication manager cache",
+            changedDoc.getDocumentReference());
+      }
+    }
+
   }
 }

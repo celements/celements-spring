@@ -57,13 +57,16 @@ public class ExecutionContextFilter implements Filter {
   }
 
   private Optional<String> getRequestUrl(ServletRequest request) {
-    if (request instanceof HttpServletRequest) {
-      HttpServletRequest httpRequest = (HttpServletRequest) request;
-      StringBuffer requestURL = httpRequest.getRequestURL();
-      String queryString = httpRequest.getQueryString();
-      return Optional.of(requestURL.toString() + (queryString != null ? "?" + queryString : ""));
+    if (!(request instanceof HttpServletRequest)) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    HttpServletRequest httpRequest = (HttpServletRequest) request;
+    StringBuilder url = new StringBuilder(httpRequest.getRequestURL());
+    String query = httpRequest.getQueryString();
+    if ((query != null) && !query.isEmpty()) {
+      url.append('?').append(query);
+    }
+    return Optional.of(url.toString());
   }
 
   @Override

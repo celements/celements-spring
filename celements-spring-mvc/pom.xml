@@ -42,6 +42,12 @@
       <version>6.3</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-core</artifactId>
+      <version>6.12</version>
+      <scope>provided</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework</groupId>

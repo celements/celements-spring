@@ -14,6 +14,9 @@ public interface IdentityServer {
   @NotEmpty
   String getRealm();
 
+  @NotEmpty
+  String getJwkSetUri();
+
   @NotNull
   AuthenticationManager getAuthenticationManagerForWiki(WikiReference wikiRef);
 

@@ -41,7 +41,7 @@ public class CelSecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     LOGGER.info("securityFilterChain called for {}, {}", defer(identitySrv::getHost),
         defer(identitySrv::getRealm));
-    http
+    return http
         .csrf().disable()
         .sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -53,8 +53,8 @@ public class CelSecurityConfig {
             .authenticationManagerResolver(authenticationManagerResolver()))
         .exceptionHandling(exceptions -> exceptions
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
-            .accessDeniedHandler(new BearerTokenAccessDeniedHandler()));
-    return http.build();
+            .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))
+        .build();
   }
 
   @Bean
@@ -65,7 +65,7 @@ public class CelSecurityConfig {
 
   @Bean
   public WebSecurityCustomizer webSecurityCustomizer() {
-    return (web) -> web
+    return web -> web
         .ignoring()
         .antMatchers("/favicon.ico", "/api/v3/api-docs");
   }

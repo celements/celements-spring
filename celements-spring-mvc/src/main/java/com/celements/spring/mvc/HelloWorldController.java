@@ -5,12 +5,14 @@ import javax.inject.Inject;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.xwiki.context.Execution;
 
 import com.celements.execution.XWikiExecutionProp;
 import com.celements.spring.security.AuthenticatedBaseController;
 import com.xpn.xwiki.XWikiContext;
 
+@RestController
 public class HelloWorldController extends AuthenticatedBaseController {
 
   private final BeanFactory beanFactory;

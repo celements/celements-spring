@@ -23,7 +23,7 @@ import com.celements.model.context.ModelContext;
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(jsr250Enabled = true)
+@EnableGlobalMethodSecurity(jsr250Enabled = true, prePostEnabled = true)
 public class CelSecurityConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityConfig.class);
@@ -47,8 +47,7 @@ public class CelSecurityConfig {
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
         .authorizeHttpRequests(authorize -> authorize
-            .antMatchers("/api/public/**").permitAll()
-            .anyRequest().authenticated())
+            .anyRequest().permitAll())
         .oauth2ResourceServer(oauth2 -> oauth2
             .authenticationManagerResolver(authenticationManagerResolver()))
         .exceptionHandling(exceptions -> exceptions

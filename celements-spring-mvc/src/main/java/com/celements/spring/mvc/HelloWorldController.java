@@ -13,6 +13,7 @@ import com.celements.spring.security.AuthenticatedBaseController;
 import com.xpn.xwiki.XWikiContext;
 
 @RestController
+@PermitAll
 public class HelloWorldController extends AuthenticatedBaseController {
 
   private final BeanFactory beanFactory;

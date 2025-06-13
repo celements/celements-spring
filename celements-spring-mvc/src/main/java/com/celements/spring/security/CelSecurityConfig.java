@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -47,6 +48,7 @@ public class CelSecurityConfig {
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
         .authorizeHttpRequests(authorize -> authorize
+            .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .anyRequest().permitAll())
         .oauth2ResourceServer(oauth2 -> oauth2
             .authenticationManagerResolver(authenticationManagerResolver()))

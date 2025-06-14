@@ -19,7 +19,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.container.servlet.ServletContainerException;
-import org.xwiki.context.Execution;
 import org.xwiki.context.ExecutionContextException;
 
 import com.celements.init.CelementsRequestFilter;
@@ -37,7 +36,6 @@ public class ExecutionContextFilter implements Filter {
   @Override
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
-    Execution execution = getBeanFactory().getBean(Execution.class);
     CelementsRequestFilter requestFilter = getBeanFactory().getBean(CelementsRequestFilter.class);
     try {
       LOGGER.debug("setup execution context for request {}",
@@ -52,7 +50,7 @@ public class ExecutionContextFilter implements Filter {
         | ServletContainerException exp) {
       LOGGER.error("Failed to execute request becuase initialize execution context failed", exp);
     } finally {
-      execution.removeContext();
+      requestFilter.postExecute();
     }
   }
 

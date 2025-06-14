@@ -48,7 +48,7 @@ public class ExecutionContextFilter implements Filter {
       chain.doFilter(request, response);
     } catch (ExecutionContextException | WikiMissingException | ExecutionException
         | ServletContainerException exp) {
-      LOGGER.error("Failed to execute request becuase initialize execution context failed", exp);
+      LOGGER.error("Failed to execute request because initialize execution context failed", exp);
     } finally {
       requestFilter.postExecute();
     }

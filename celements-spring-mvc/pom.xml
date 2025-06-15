@@ -24,17 +24,12 @@
   <parent>
     <groupId>com.celements</groupId>
     <artifactId>celements</artifactId>
-    <version>6.2</version>
+    <version>6.3-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>celements-spring-mvc</artifactId>
   <version>6.2-SNAPSHOT</version>
   <description>Celements Spring MVC</description>
-  <properties>
-    <!-- Spring Security 5.7.x is a rock-solid, API-stable branch
-    that aligns perfectly with Spring 5.3. -->
-    <spring.security.version>5.7.12</spring.security.version>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>com.celements</groupId>

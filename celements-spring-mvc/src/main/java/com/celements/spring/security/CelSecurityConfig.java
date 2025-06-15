@@ -19,8 +19,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.xwiki.context.ExecutionContext;
 
-import com.celements.model.context.ModelContext;
+import com.celements.execution.XWikiExecutionProp;
+import com.xpn.xwiki.XWikiConstant;
 
 @Configuration
 @EnableWebSecurity
@@ -30,12 +32,12 @@ public class CelSecurityConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityConfig.class);
 
   private final IdentityServer identitySrv;
-  private final ModelContext context;
+  private final ExecutionContext execContext;
 
   @Inject
-  public CelSecurityConfig(IdentityServer identityServer, ModelContext context) {
+  public CelSecurityConfig(IdentityServer identityServer, ExecutionContext context) {
     this.identitySrv = identityServer;
-    this.context = context;
+    this.execContext = context;
   }
 
   @Bean
@@ -61,7 +63,9 @@ public class CelSecurityConfig {
   @Bean
   public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver() {
     // Uses only thread-local ExecutionContext; request is ignored.
-    return request -> identitySrv.getAuthenticationManagerForWiki(context.getWikiRef());
+    return request -> identitySrv.getAuthenticationManagerForWiki(
+        execContext.get(XWikiExecutionProp.WIKI)
+            .orElse(XWikiConstant.MAIN_WIKI));
   }
 
   @Bean

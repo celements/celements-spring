@@ -36,7 +36,7 @@ import com.xpn.xwiki.XWikiConstant;
 import com.xpn.xwiki.doc.XWikiDocument;
 
 @Component
-public class KeycloakService implements IdentityServer {
+public class KeycloakService implements IdentityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakService.class);
 

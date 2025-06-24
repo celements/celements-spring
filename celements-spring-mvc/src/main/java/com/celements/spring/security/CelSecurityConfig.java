@@ -31,19 +31,19 @@ public class CelSecurityConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityConfig.class);
 
-  private final IdentityServer identitySrv;
+  private final IdentityService identityService;
   private final Execution excecution;
 
   @Inject
-  public CelSecurityConfig(IdentityServer identityServer, Execution excecution) {
-    this.identitySrv = identityServer;
+  public CelSecurityConfig(IdentityService identityService, Execution excecution) {
+    this.identityService = identityService;
     this.excecution = excecution;
   }
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    LOGGER.info("securityFilterChain called for {}, {}", defer(identitySrv::getHost),
-        defer(identitySrv::getRealm));
+    LOGGER.info("securityFilterChain called for {}, {}", defer(identityService::getHost),
+        defer(identityService::getRealm));
     return http
         .csrf().disable()
         .sessionManagement()
@@ -63,7 +63,7 @@ public class CelSecurityConfig {
   @Bean
   public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver() {
     // Uses only thread-local ExecutionContext; request is ignored.
-    return request -> identitySrv.getAuthenticationManagerForWiki(
+    return request -> identityService.getAuthenticationManagerForWiki(
         excecution.getContext().get(XWikiExecutionProp.WIKI)
             .orElse(XWikiConstant.MAIN_WIKI));
   }

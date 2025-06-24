@@ -6,7 +6,7 @@ import javax.validation.constraints.NotNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.xwiki.model.reference.WikiReference;
 
-public interface IdentityServer {
+public interface IdentityService {
 
   @NotEmpty
   String getHost();

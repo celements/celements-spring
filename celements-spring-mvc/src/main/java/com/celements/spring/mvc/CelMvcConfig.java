@@ -14,8 +14,6 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.google.common.collect.ImmutableList;
-
 @Configuration
 @EnableWebMvc
 @EnableConfigurationProperties(SpringDocConfigProperties.class)
@@ -31,7 +29,7 @@ public class CelMvcConfig implements WebMvcConfigurer {
 
   @Inject
   public CelMvcConfig(List<CelMvcInterceptor> interceptors) {
-    this.interceptors = ImmutableList.copyOf(interceptors);
+    this.interceptors = List.copyOf(interceptors);
   }
 
   @Override

@@ -3,17 +3,19 @@ package com.celements.spring.mvc;
 import javax.inject.Inject;
 
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.xwiki.context.Execution;
 
 import com.celements.execution.XWikiExecutionProp;
+import com.celements.spring.security.AuthenticatedBaseController;
 import com.xpn.xwiki.XWikiContext;
 
 @RestController
-public class HelloWorldController {
+public class HelloWorldController extends AuthenticatedBaseController {
 
-  private BeanFactory beanFactory;
+  private final BeanFactory beanFactory;
 
   @Inject
   public HelloWorldController(BeanFactory beanFactory) {
@@ -21,6 +23,7 @@ public class HelloWorldController {
   }
 
   @GetMapping("/helloworld")
+  @PreAuthorize("permitAll()")
   public String helloWorld() {
     return "Hello World!";
   }
@@ -31,7 +34,7 @@ public class HelloWorldController {
         .getBean(Execution.class)
         .getContext()
         .get(XWikiExecutionProp.XWIKI_CONTEXT)
-        .orElse(null);
+        .orElseThrow();
   }
 
 }

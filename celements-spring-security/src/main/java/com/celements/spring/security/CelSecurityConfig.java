@@ -46,27 +46,24 @@ public class CelSecurityConfig {
   @Bean
   @Order(1)
   public SecurityFilterChain loginFilterChain(HttpSecurity http) throws Exception {
-    http
+    LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
+        defer(identityService::getRealm), defer(identityService::getLoginUrl));
+    return http
         // only for non‐API URLs
         .requestMatcher(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")))
         .csrf().disable()
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
-        .authorizeHttpRequests(authorize -> authorize
-            .anyRequest().authenticated())
-        .oauth2Login(oauth2 -> oauth2
-            .loginPage("/oauth2/authorization/keycloak"))
-        .logout(logout -> logout
-            .logoutSuccessUrl("/") // TODO get celements-logout URL respecting XWikiPreferences or
-                                   // xwiki.cfg config
-        );
-    return http.build();
+        .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+        .oauth2Login(oauth2 -> oauth2.loginPage(identityService.getLoginUrl()))
+        .logout(logout -> logout.logoutSuccessUrl(identityService.getLogoutSucessUrl()))
+        .build();
   }
 
   @Bean
   @Order(2)
   public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
-    LOGGER.info("securityFilterChain called for {}, {}", defer(identityService::getHost),
+    LOGGER.info("apiFilterChain called for {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm));
     return http
         .requestMatchers(r -> r.antMatchers("/api/**"))

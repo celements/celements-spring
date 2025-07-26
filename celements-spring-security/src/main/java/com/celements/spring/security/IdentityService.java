@@ -32,4 +32,13 @@ public interface IdentityService {
   @NotEmpty
   String getIssuerUri();
 
+  @NotEmpty
+  String getLoginUrl();
+
+  @NotEmpty
+  String getRegistrationId();
+
+  @NotEmpty
+  String getLogoutSucessUrl();
+
 }

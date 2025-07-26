@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -19,6 +20,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
 import com.celements.execution.XWikiExecutionProp;
@@ -41,13 +44,34 @@ public class CelSecurityConfig {
   }
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  @Order(1)
+  public SecurityFilterChain loginFilterChain(HttpSecurity http) throws Exception {
+    http
+        // only for non‐API URLs
+        .requestMatcher(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")))
+        .csrf().disable()
+        .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        .and()
+        .authorizeHttpRequests(authorize -> authorize
+            .anyRequest().authenticated())
+        .oauth2Login(oauth2 -> oauth2
+            .loginPage("/oauth2/authorization/keycloak"))
+        .logout(logout -> logout
+            .logoutSuccessUrl("/") // TODO get celements-logout URL respecting XWikiPreferences or
+                                   // xwiki.cfg config
+        );
+    return http.build();
+  }
+
+  @Bean
+  @Order(2)
+  public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
     LOGGER.info("securityFilterChain called for {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm));
     return http
+        .requestMatchers(r -> r.antMatchers("/api/**"))
         .csrf().disable()
-        .sessionManagement()
-        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
         .authorizeHttpRequests(authorize -> authorize
             .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()

@@ -15,9 +15,21 @@ public interface IdentityService {
   String getRealm();
 
   @NotEmpty
+  String getLoginClientId();
+
+  @NotEmpty
+  String getLoginClientSecret();
+
+  @NotEmpty
   String getJwkSetUri();
 
   @NotNull
   AuthenticationManager getAuthenticationManagerForWiki(WikiReference wikiRef);
+
+  @NotEmpty
+  String getOAuth2BaseUrl();
+
+  @NotEmpty
+  String getIssuerUri();
 
 }

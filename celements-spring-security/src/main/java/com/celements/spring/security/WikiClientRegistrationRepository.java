@@ -2,6 +2,8 @@ package com.celements.spring.security;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -10,6 +12,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class WikiClientRegistrationRepository implements ClientRegistrationRepository {
+
+  private static final Logger LOGGER = LoggerFactory
+      .getLogger(WikiClientRegistrationRepository.class);
 
   private final IdentityService identityService;
 
@@ -20,6 +25,7 @@ public class WikiClientRegistrationRepository implements ClientRegistrationRepos
 
   @Override
   public ClientRegistration findByRegistrationId(String registrationId) {
+    LOGGER.debug("findByRegistrationId for {}", registrationId);
     return ClientRegistration.withRegistrationId(registrationId)
         .clientId(identityService.getLoginClientId())
         .clientSecret(identityService.getLoginClientSecret())

@@ -51,10 +51,11 @@ public class CelSecurityConfig {
     return http
         // only for non‐API URLs
         .requestMatcher(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")))
-        .csrf().disable()
-        .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        .and()
-        .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(ex -> ex
+            .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))
+        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
         .build();
   }
 

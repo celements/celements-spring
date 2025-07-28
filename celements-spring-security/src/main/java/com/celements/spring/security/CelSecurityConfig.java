@@ -53,6 +53,7 @@ public class CelSecurityConfig {
         .requestMatcher(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}"))
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())

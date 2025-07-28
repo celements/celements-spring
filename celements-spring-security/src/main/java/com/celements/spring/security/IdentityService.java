@@ -1,5 +1,7 @@
 package com.celements.spring.security;
 
+import java.util.Optional;
+
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
@@ -8,11 +10,16 @@ import org.xwiki.model.reference.WikiReference;
 
 public interface IdentityService {
 
+  boolean isOAuthEnabled();
+
   @NotEmpty
   String getHost();
 
   @NotEmpty
   String getRealm();
+
+  @NotEmpty
+  Optional<String> getRealmOpt();
 
   @NotEmpty
   String getLoginClientId();

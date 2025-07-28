@@ -20,6 +20,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
@@ -49,8 +50,10 @@ public class CelSecurityConfig {
     LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm), defer(identityService::getLoginUrl));
     return http
-        // only for non‐API URLs
-        .requestMatcher(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")))
+        // only non-API paths for tenants with OAuth
+        .requestMatcher(new AndRequestMatcher(
+            new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")),
+            new OAuthTenantRequestMatcher(identityService)))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}"))

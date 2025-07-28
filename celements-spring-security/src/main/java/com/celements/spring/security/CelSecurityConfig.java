@@ -55,8 +55,6 @@ public class CelSecurityConfig {
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
         .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
-        .oauth2Login(oauth2 -> oauth2.loginPage(identityService.getLoginUrl()))
-        .logout(logout -> logout.logoutSuccessUrl(identityService.getLogoutSucessUrl()))
         .build();
   }
 

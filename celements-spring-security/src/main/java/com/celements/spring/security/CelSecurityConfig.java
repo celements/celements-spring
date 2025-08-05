@@ -19,6 +19,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
@@ -38,14 +39,17 @@ public class CelSecurityConfig {
 
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientService authorizedClientService;
+  private final OAuth2CookieService cookieService;
   private final Execution excecution;
 
   @Inject
   public CelSecurityConfig(IdentityService identityService,
-      OAuth2AuthorizedClientService authorizedClientService, Execution excecution) {
+      OAuth2AuthorizedClientService authorizedClientService, OAuth2CookieService cookieService,
+      Execution excecution) {
     this.identityService = identityService;
-    this.excecution = excecution;
     this.authorizedClientService = authorizedClientService;
+    this.cookieService = cookieService;
+    this.excecution = excecution;
   }
 
   @Bean
@@ -61,7 +65,14 @@ public class CelSecurityConfig {
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")
-            .successHandler(new OAuth2CookieAuthenticationSuccessHandler(authorizedClientService)))
+            .successHandler(new OAuth2CookieAuthenticationSuccessHandler(authorizedClientService,
+                cookieService)))
+        .oauth2ResourceServer(rs -> rs
+            .bearerTokenResolver(new CookieBearerTokenResolver("access_token"))
+            .jwt()) // needs a JwtDecoder bean
+        .addFilterBefore(
+            new TokenRefreshFilter(cookieService),
+            BearerTokenAuthenticationFilter.class)
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())

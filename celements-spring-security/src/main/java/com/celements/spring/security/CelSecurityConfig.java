@@ -17,6 +17,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
@@ -36,12 +37,15 @@ public class CelSecurityConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityConfig.class);
 
   private final IdentityService identityService;
+  private final OAuth2AuthorizedClientService authorizedClientService;
   private final Execution excecution;
 
   @Inject
-  public CelSecurityConfig(IdentityService identityService, Execution excecution) {
+  public CelSecurityConfig(IdentityService identityService,
+      OAuth2AuthorizedClientService authorizedClientService, Execution excecution) {
     this.identityService = identityService;
     this.excecution = excecution;
+    this.authorizedClientService = authorizedClientService;
   }
 
   @Bean
@@ -56,7 +60,8 @@ public class CelSecurityConfig {
             new OAuthTenantRequestMatcher(identityService)))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-        .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}"))
+        .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")
+            .successHandler(new OAuth2CookieAuthenticationSuccessHandler(authorizedClientService)))
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())

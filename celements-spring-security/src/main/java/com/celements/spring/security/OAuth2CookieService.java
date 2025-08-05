@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -87,6 +88,13 @@ public class OAuth2CookieService {
     return Optional.empty();
   }
 
+  /**
+   * @param request
+   *          the request
+   * @return the Refresh Token or optional.empty if none found
+   * @throws OAuth2AuthenticationException
+   *           if the found token is invalid
+   */
   public Optional<OAuth2RefreshToken> getRefreshTokenFromCookie(HttpServletRequest req) {
     return getJwtFromCookie(req, COOKIE_REFRESH_TOKEN)
         .map(refreshToken -> new OAuth2RefreshToken(
@@ -94,6 +102,17 @@ public class OAuth2CookieService {
             refreshToken.getIssuedAt()));
   }
 
+  /**
+   * Resolve any
+   * <a href="https://tools.ietf.org/html/rfc6750#section-1.2" target="_blank">Bearer
+   * Token</a> value from the access_token cookie in the request.
+   *
+   * @param request
+   *          the request
+   * @return the Bearer Access Token or optional.empty if none found
+   * @throws OAuth2AuthenticationException
+   *           if the found token is invalid
+   */
   public Optional<OAuth2AccessToken> getAccessTokenFromCookie(HttpServletRequest req) {
     return getJwtFromCookie(req, COOKIE_ACCESS_TOKEN)
         .map(this::reconstructAccessTokenFromJwt);
@@ -127,7 +146,7 @@ public class OAuth2CookieService {
           .map(cookie -> jwtDecoder.decode(cookie.getValue()));
     } catch (JwtException exp) {
       LOGGER.debug("Failed to decode token from cookie '{}' ", cookieName, exp);
-      return Optional.empty();
+      throw new OAuth2AuthenticationException(exp.getMessage());
     }
   }
 

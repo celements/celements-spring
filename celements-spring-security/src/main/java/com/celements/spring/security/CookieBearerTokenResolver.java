@@ -1,22 +1,21 @@
 package com.celements.spring.security;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
-import org.springframework.web.util.WebUtils;
 
 public class CookieBearerTokenResolver implements BearerTokenResolver {
 
-  private final String cookieName;
+  private final OAuth2CookieService cookieService;
 
-  public CookieBearerTokenResolver(String cookieName) {
-    this.cookieName = cookieName;
+  public CookieBearerTokenResolver(OAuth2CookieService cookieService) {
+    this.cookieService = cookieService;
   }
 
   @Override
   public String resolve(HttpServletRequest req) {
-    Cookie c = WebUtils.getCookie(req, cookieName);
-    return c != null ? c.getValue() : null;
+    return cookieService.getAccessTokenFromCookie(req)
+        .map(t -> t.getTokenValue())
+        .orElse(null);
   }
 }

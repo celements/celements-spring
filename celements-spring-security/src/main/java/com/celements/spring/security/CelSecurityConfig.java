@@ -25,10 +25,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
-import org.xwiki.context.Execution;
-
-import com.celements.execution.XWikiExecutionProp;
-import com.xpn.xwiki.XWikiConstant;
 
 @Configuration
 @EnableWebSecurity
@@ -40,16 +36,16 @@ public class CelSecurityConfig {
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientService authorizedClientService;
   private final OAuth2CookieService cookieService;
-  private final Execution excecution;
+  private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
 
   @Inject
   public CelSecurityConfig(IdentityService identityService,
       OAuth2AuthorizedClientService authorizedClientService, OAuth2CookieService cookieService,
-      Execution excecution) {
+      AuthenticationManagerResolver<HttpServletRequest> authManagerResolver) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;
     this.cookieService = cookieService;
-    this.excecution = excecution;
+    this.authManagerResolver = authManagerResolver;
   }
 
   @Bean
@@ -94,19 +90,11 @@ public class CelSecurityConfig {
             .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .anyRequest().permitAll())
         .oauth2ResourceServer(oauth2 -> oauth2
-            .authenticationManagerResolver(authenticationManagerResolver()))
+            .authenticationManagerResolver(authManagerResolver))
         .exceptionHandling(exceptions -> exceptions
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
             .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))
         .build();
-  }
-
-  @Bean
-  public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver() {
-    // Uses only thread-local ExecutionContext; request is ignored.
-    return request -> identityService.getAuthenticationManagerForWiki(
-        excecution.getContext().get(XWikiExecutionProp.WIKI)
-            .orElse(XWikiConstant.MAIN_WIKI));
   }
 
   @Bean

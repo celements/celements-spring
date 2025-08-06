@@ -64,9 +64,8 @@ public class CelSecurityConfig {
             .successHandler(new OAuth2CookieAuthenticationSuccessHandler(authorizedClientService,
                 cookieService)))
         .oauth2ResourceServer(rs -> rs
-            .bearerTokenResolver(
-                new CookieBearerTokenResolver(cookieService))
-            .jwt()) // needs a JwtDecoder bean
+            .bearerTokenResolver(new CookieBearerTokenResolver(cookieService))
+            .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
             new TokenRefreshFilter(cookieService),
             BearerTokenAuthenticationFilter.class)

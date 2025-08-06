@@ -72,16 +72,20 @@ public class OAuth2CookieService {
   }
 
   public Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(HttpServletRequest req) {
-    Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
-    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
-    if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
-      OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
-      OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
-      return Optional.of(new OAuth2AuthorizedClient(
-          registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
-          accessJwtOpt.get().getSubject(),
-          accessToken,
-          refreshToken));
+    try {
+      Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
+      Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
+      if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
+        OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
+        OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
+        return Optional.of(new OAuth2AuthorizedClient(
+            registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
+            accessJwtOpt.get().getSubject(),
+            accessToken,
+            refreshToken));
+      }
+    } catch (OAuth2AuthenticationException exp) {
+      LOGGER.info("No valid access token found", exp);
     }
     return Optional.empty();
   }

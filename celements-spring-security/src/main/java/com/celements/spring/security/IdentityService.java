@@ -6,6 +6,7 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.xwiki.model.reference.WikiReference;
 
 public interface IdentityService {
@@ -47,5 +48,8 @@ public interface IdentityService {
 
   @NotEmpty
   String getLogoutSucessUrl();
+
+  @NotNull
+  JwtDecoder getJwtDecoder();
 
 }

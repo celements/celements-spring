@@ -18,7 +18,6 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.WebUtils;
@@ -31,15 +30,14 @@ public class OAuth2CookieService {
   public static final String COOKIE_ACCESS_TOKEN = "access_token";
   public static final String COOKIE_REFRESH_TOKEN = "refresh_token";
 
-  private final JwtDecoder jwtDecoder;
   private final WikiClientRegistrationRepository registrationRepo;
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientManager authorizedClientManager;
 
-  public OAuth2CookieService(JwtDecoder jwtDecoder,
-      WikiClientRegistrationRepository registrationRepo, IdentityService identityService,
+  public OAuth2CookieService(
+      WikiClientRegistrationRepository registrationRepo,
+      IdentityService identityService,
       OAuth2AuthorizedClientManager authorizedClientManager) {
-    this.jwtDecoder = jwtDecoder;
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
     this.authorizedClientManager = authorizedClientManager;
@@ -143,7 +141,7 @@ public class OAuth2CookieService {
   private Optional<Jwt> getJwtFromCookie(HttpServletRequest req, String cookieName) {
     try {
       return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
-          .map(cookie -> jwtDecoder.decode(cookie.getValue()));
+          .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));
     } catch (JwtException exp) {
       LOGGER.debug("Failed to decode token from cookie '{}' ", cookieName, exp);
       throw new OAuth2AuthenticationException(exp.getMessage());

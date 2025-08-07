@@ -37,6 +37,11 @@ public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
         && (auth instanceof OAuth2AuthenticationToken)) {
       LOGGER.info("is authenticated with user '{}'", auth.getName());
       execution.getContext().set(XWikiExecutionProp.XWIKI_USER, new XWikiUser(auth.getName()));
+    } else if (auth != null) {
+      LOGGER.info("is '{}' authenticated with user '{}', auth-class '{}'", auth.isAuthenticated(),
+          auth.getName(), auth.getClass());
+    } else {
+      LOGGER.info("is NOT authenticated with user '{}'", "null");
     }
     filterChain.doFilter(request, response);
   }

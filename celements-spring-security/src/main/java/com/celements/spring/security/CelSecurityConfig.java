@@ -25,6 +25,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.xwiki.context.Execution;
 
 @Configuration
 @EnableWebSecurity
@@ -37,15 +38,18 @@ public class CelSecurityConfig {
   private final OAuth2AuthorizedClientService authorizedClientService;
   private final OAuth2CookieService cookieService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
+  private final Execution execution;
 
   @Inject
   public CelSecurityConfig(IdentityService identityService,
       OAuth2AuthorizedClientService authorizedClientService, OAuth2CookieService cookieService,
-      AuthenticationManagerResolver<HttpServletRequest> authManagerResolver) {
+      AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
+      Execution execution) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;
     this.cookieService = cookieService;
     this.authManagerResolver = authManagerResolver;
+    this.execution = execution;
   }
 
   @Bean
@@ -68,6 +72,9 @@ public class CelSecurityConfig {
             .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
             new TokenRefreshFilter(cookieService),
+            BearerTokenAuthenticationFilter.class)
+        .addFilterAfter(
+            new ExecutionContextAuthenticationFilter(execution),
             BearerTokenAuthenticationFilter.class)
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))

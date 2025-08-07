@@ -34,6 +34,12 @@
   <description>Celements Spring Security</description>
   <dependencies>
 
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-model</artifactId>
+      <version>6.5</version>
+    </dependency>
+
     <!-- core Spring Security -->
     <dependency>
       <groupId>org.springframework.security</groupId>

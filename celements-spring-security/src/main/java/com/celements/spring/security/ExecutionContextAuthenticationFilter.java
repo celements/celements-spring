@@ -29,7 +29,6 @@ public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
       .getLogger(ExecutionContextAuthenticationFilter.class);
 
   private final Execution execution;
-
   private final UserService userService;
 
   public ExecutionContextAuthenticationFilter(UserService userService, Execution execution) {

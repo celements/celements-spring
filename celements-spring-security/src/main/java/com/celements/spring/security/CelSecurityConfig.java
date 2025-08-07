@@ -27,6 +27,8 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
+import com.celements.auth.user.UserService;
+
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(jsr250Enabled = true, prePostEnabled = true)
@@ -38,17 +40,19 @@ public class CelSecurityConfig {
   private final OAuth2AuthorizedClientService authorizedClientService;
   private final OAuth2CookieService cookieService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
+  private final UserService userService;
   private final Execution execution;
 
   @Inject
   public CelSecurityConfig(IdentityService identityService,
       OAuth2AuthorizedClientService authorizedClientService, OAuth2CookieService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
-      Execution execution) {
+      UserService userService, Execution execution) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;
     this.cookieService = cookieService;
     this.authManagerResolver = authManagerResolver;
+    this.userService = userService;
     this.execution = execution;
   }
 
@@ -74,7 +78,7 @@ public class CelSecurityConfig {
             new TokenRefreshFilter(cookieService),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
-            new ExecutionContextAuthenticationFilter(execution),
+            new ExecutionContextAuthenticationFilter(userService, execution),
             BearerTokenAuthenticationFilter.class)
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))

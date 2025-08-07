@@ -2,6 +2,7 @@ package com.celements.spring.security;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -64,12 +65,14 @@ public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
           username, email);
       if (username != null) {
         Optional<User> userOpt = userService.getPossibleUserForLoginField(username,
-            userService.getPossibleLoginFields());
+            Set.of("email"));
         if (userOpt.isPresent()) {
           User user = userOpt.get();
           LOGGER.debug("setting xwiki username='{}', email='{}'", user.asXWikiUser().getUser(),
               user.email());
           execution.getContext().set(XWikiExecutionProp.XWIKI_USER, user.asXWikiUser());
+        } else {
+          LOGGER.info("no celements user found for email='{}'", email);
         }
       }
     } else if (auth != null) {

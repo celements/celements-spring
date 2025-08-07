@@ -10,7 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +20,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
@@ -73,6 +77,8 @@ public class CelSecurityConfig {
                 cookieService)))
         .oauth2ResourceServer(rs -> rs
             .bearerTokenResolver(new CookieBearerTokenResolver(cookieService))
+            .jwt(jwt -> jwt
+                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
             .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
             new TokenRefreshFilter(cookieService),
@@ -105,6 +111,13 @@ public class CelSecurityConfig {
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
             .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))
         .build();
+  }
+
+  @Bean
+  public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+    JwtAuthenticationConverter conv = new JwtAuthenticationConverter();
+    conv.setPrincipalClaimName("preferred_username");
+    return conv;
   }
 
   @Bean

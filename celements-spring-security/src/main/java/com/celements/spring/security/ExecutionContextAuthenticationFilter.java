@@ -1,5 +1,7 @@
 package com.celements.spring.security;
 
+import static com.celements.logging.LogUtils.*;
+
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
@@ -23,6 +25,7 @@ import org.xwiki.context.Execution;
 import com.celements.auth.user.User;
 import com.celements.auth.user.UserService;
 import com.celements.execution.XWikiExecutionProp;
+import com.xpn.xwiki.user.api.XWikiUser;
 
 public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
 
@@ -68,8 +71,8 @@ public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
             Set.of("email"));
         if (userOpt.isPresent()) {
           User user = userOpt.get();
-          LOGGER.debug("setting xwiki username='{}', email='{}'", user.asXWikiUser().getUser(),
-              user.email());
+          LOGGER.debug("setting xwiki isGlobal='{}', username='{}', email='{}'", user.isGlobal(),
+              defer(() -> getUserName(user.asXWikiUser())), user.email());
           execution.getContext().set(XWikiExecutionProp.XWIKI_USER, user.asXWikiUser());
         } else {
           LOGGER.info("no celements user found for email='{}'", email);
@@ -82,6 +85,10 @@ public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
       LOGGER.info("is NOT authenticated with user '{}'", "null");
     }
     filterChain.doFilter(request, response);
+  }
+
+  private String getUserName(XWikiUser user) {
+    return (user.isMain() ? "xwiki:" : "") + user.getUser();
   }
 
 }

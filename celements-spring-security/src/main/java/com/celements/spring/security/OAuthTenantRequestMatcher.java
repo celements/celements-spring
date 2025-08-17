@@ -7,6 +7,8 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
 import org.xwiki.context.Execution;
@@ -17,6 +19,8 @@ import com.celements.wiki.service.WikiManagerService;
 
 @Component
 public class OAuthTenantRequestMatcher implements RequestMatcher {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(OAuthTenantRequestMatcher.class);
 
   private final IdentityService identityService;
   private final WikiManagerService wikiManager;
@@ -38,11 +42,17 @@ public class OAuthTenantRequestMatcher implements RequestMatcher {
   }
 
   private boolean isOicdEnabled() {
-    return getWikiRef()
-        .flatMap(wikiManager::getWikiConfigOptional)
-        .flatMap(fetcher -> fetcher.fetchField(XWikiServerClass.FIELD_OICD_ACTIVE)
-            .findFirst())
-        .orElse(false);
+    try {
+      return getWikiRef()
+          .flatMap(wikiManager::getWikiConfigOptional)
+          .flatMap(fetcher -> fetcher.fetchField(XWikiServerClass.FIELD_OICD_ACTIVE)
+              .findFirst())
+          .orElseThrow(() -> new MissingOicdConfigException("OICD_ACTIVE not set/configured for ["
+              + getWikiRef().map(WikiReference::getName).orElse("no wiki found") + "]"));
+    } catch (MissingOicdConfigException exp) {
+      LOGGER.debug("Missing Oicd Configuration", exp);
+    }
+    return false;
   }
 
   private Optional<WikiReference> getWikiRef() {

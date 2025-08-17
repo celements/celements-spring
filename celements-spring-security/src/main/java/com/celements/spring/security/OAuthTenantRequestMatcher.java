@@ -38,7 +38,11 @@ public class OAuthTenantRequestMatcher implements RequestMatcher {
 
   @Override
   public boolean matches(HttpServletRequest request) {
-    return isOicdEnabled() && identityService.isConfigValid();
+    boolean oicdEnabled = isOicdEnabled();
+    boolean configValid = identityService.isConfigValid();
+    LOGGER.debug("check oicd config for [{}], oicdEnabled={}, configValid={}", getWikiNameForLog(),
+        oicdEnabled, configValid);
+    return oicdEnabled && configValid;
   }
 
   private boolean isOicdEnabled() {
@@ -48,11 +52,15 @@ public class OAuthTenantRequestMatcher implements RequestMatcher {
           .flatMap(fetcher -> fetcher.fetchField(XWikiServerClass.FIELD_OICD_ACTIVE)
               .findFirst())
           .orElseThrow(() -> new MissingOicdConfigException("OICD_ACTIVE not set/configured for ["
-              + getWikiRef().map(WikiReference::getName).orElse("no wiki found") + "]"));
+              + getWikiNameForLog() + "]"));
     } catch (MissingOicdConfigException exp) {
-      LOGGER.debug("Missing Oicd Configuration", exp);
+      LOGGER.info("Missing Oicd Configuration", exp);
     }
     return false;
+  }
+
+  private String getWikiNameForLog() {
+    return getWikiRef().map(WikiReference::getName).orElse("no wiki found");
   }
 
   private Optional<WikiReference> getWikiRef() {

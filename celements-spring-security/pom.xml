@@ -38,6 +38,13 @@
       <groupId>com.celements</groupId>
       <artifactId>celements-model</artifactId>
       <version>6.5</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-wiki-manager</artifactId>
+      <version>6.1-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- core Spring Security -->

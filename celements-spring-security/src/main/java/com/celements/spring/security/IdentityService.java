@@ -11,7 +11,7 @@ import org.xwiki.model.reference.WikiReference;
 
 public interface IdentityService {
 
-  boolean isOAuthEnabled();
+  boolean isConfigValid();
 
   @NotEmpty
   String getHost();

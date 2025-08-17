@@ -41,18 +41,20 @@ public class CelSecurityConfig {
   private final OAuth2CookieService cookieService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
+  private final OAuthTenantRequestMatcher oAuthTenantMatcher;
   private final Execution execution;
 
   @Inject
   public CelSecurityConfig(IdentityService identityService,
       OAuth2AuthorizedClientService authorizedClientService, OAuth2CookieService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
-      UserService userService, Execution execution) {
+      UserService userService, OAuthTenantRequestMatcher oAuthTenantMatcher, Execution execution) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;
     this.cookieService = cookieService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
+    this.oAuthTenantMatcher = oAuthTenantMatcher;
     this.execution = execution;
   }
 
@@ -65,7 +67,7 @@ public class CelSecurityConfig {
         // only non-API paths for tenants with OAuth
         .requestMatcher(new AndRequestMatcher(
             new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")),
-            new OAuthTenantRequestMatcher(identityService)))
+            oAuthTenantMatcher))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")

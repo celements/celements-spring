@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.WikiReference;
 
-import com.celements.wiki.classes.XWikiServerClass;
 import com.celements.wiki.service.WikiManagerService;
 
 @Component
@@ -38,25 +37,11 @@ public class OAuthTenantRequestMatcher implements RequestMatcher {
 
   @Override
   public boolean matches(HttpServletRequest request) {
-    boolean oicdEnabled = isOicdEnabled();
+    boolean oicdEnabled = getWikiRef().map(wikiManager::isOicdEnabled).orElse(false);
     boolean configValid = identityService.isConfigValid();
     LOGGER.debug("check oicd config for [{}], oicdEnabled={}, configValid={}", getWikiNameForLog(),
         oicdEnabled, configValid);
     return oicdEnabled && configValid;
-  }
-
-  private boolean isOicdEnabled() {
-    try {
-      return getWikiRef()
-          .flatMap(wikiManager::getWikiConfigOptional)
-          .flatMap(fetcher -> fetcher.fetchField(XWikiServerClass.FIELD_OICD_ACTIVE)
-              .findFirst())
-          .orElseThrow(() -> new MissingOicdConfigException("OICD_ACTIVE not set/configured for ["
-              + getWikiNameForLog() + "]"));
-    } catch (MissingOicdConfigException exp) {
-      LOGGER.info("Missing Oicd Configuration", exp);
-    }
-    return false;
   }
 
   private String getWikiNameForLog() {

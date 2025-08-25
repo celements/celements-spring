@@ -1,7 +1,5 @@
 package com.celements.spring.security;
 
-import java.util.Optional;
-
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
@@ -18,9 +16,6 @@ public interface IdentityService {
 
   @NotEmpty
   String getRealm();
-
-  @NotEmpty
-  Optional<String> getRealmOpt();
 
   @NotEmpty
   String getLoginClientId();

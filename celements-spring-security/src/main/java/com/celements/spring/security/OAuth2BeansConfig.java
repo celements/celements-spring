@@ -24,19 +24,19 @@ import com.xpn.xwiki.XWikiConstant;
 public class OAuth2BeansConfig {
 
   private final IdentityService identityService;
-  private final Execution excecution;
+  private final Execution execution;
 
   @Inject
   public OAuth2BeansConfig(IdentityService identityService, Execution excecution) {
     this.identityService = identityService;
-    this.excecution = excecution;
+    this.execution = excecution;
   }
 
   @Bean
   public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver() {
     // Uses only thread-local ExecutionContext; request is ignored.
     return request -> identityService.getAuthenticationManagerForWiki(
-        excecution.getContext().get(XWikiExecutionProp.WIKI)
+        execution.getContext().get(XWikiExecutionProp.WIKI)
             .orElse(XWikiConstant.MAIN_WIKI));
   }
 

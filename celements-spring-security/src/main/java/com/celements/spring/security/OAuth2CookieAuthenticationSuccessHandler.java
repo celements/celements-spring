@@ -34,7 +34,8 @@ public class OAuth2CookieAuthenticationSuccessHandler implements AuthenticationS
         cookieService.storeTokensInCookies(response, client);
       }
     }
-    // Redirect to original URL
+    // TODO Redirect to original URL
+    // TODO fallback wiki-login-URL
     response.sendRedirect("/");
   }
 

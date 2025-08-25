@@ -147,8 +147,8 @@ public class OAuth2CookieService {
       return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
           .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));
     } catch (JwtException exp) {
-      LOGGER.debug("Failed to decode token from cookie '{}' ", cookieName, exp);
-      throw new OAuth2AuthenticationException(exp.getMessage());
+      throw new OAuth2AuthenticationException(exp);
+      // TODO make Exception include stacktrace
     }
   }
 

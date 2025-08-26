@@ -153,11 +153,11 @@ public class OAuth2CookieService {
   }
 
   private Set<String> getScopesFromJwt(Jwt jwt) {
-    List<String> scopes = jwt.getClaimAsStringList("scope");
-    // sometimes Keycloak uses "scp" instead:
-    if (scopes == null) {
-      scopes = jwt.getClaimAsStringList("scp");
-    }
+     // sometimes Keycloak uses "scp" instead
+    List<String> scopes = Stream.of("scope", "scp")
+        .map(jwt::getClaimAsStringList)
+        .filter(Objects::nonNull)
+        .findFirst().orElse(List.of());
     return new HashSet<>(scopes);
   }
 }

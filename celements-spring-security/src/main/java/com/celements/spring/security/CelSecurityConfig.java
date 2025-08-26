@@ -45,10 +45,14 @@ public class CelSecurityConfig {
   private final Execution execution;
 
   @Inject
-  public CelSecurityConfig(IdentityService identityService,
-      OAuth2AuthorizedClientService authorizedClientService, OAuth2CookieService cookieService,
+  public CelSecurityConfig(
+      IdentityService identityService,
+      OAuth2AuthorizedClientService authorizedClientService, 
+      OAuth2CookieService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
-      UserService userService, OAuthTenantRequestMatcher oAuthTenantMatcher, Execution execution) {
+      UserService userService,
+      OAuthTenantRequestMatcher oAuthTenantMatcher, 
+      Execution execution) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;
     this.cookieService = cookieService;

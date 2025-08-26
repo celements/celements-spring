@@ -2,8 +2,11 @@ package com.celements.spring.security;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -14,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
@@ -65,10 +69,18 @@ public class OAuth2CookieService {
             .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
             .build())
         .map(authorizedClientManager::authorize)
-        .filter(client -> !client.getAccessToken().getTokenValue()
-            .equals(oldClientOpt.get().getAccessToken().getTokenValue())
-            || ((client.getRefreshToken() != null) && !client.getRefreshToken().getTokenValue()
-                .equals(oldClientOpt.get().getRefreshToken().getTokenValue())));
+        .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
+            || hasRefreshTokenChanged(oldClientOpt, client));
+  }
+
+  boolean hasRefreshTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
+      OAuth2AuthorizedClient client) {
+    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getRefreshToken);
+  }
+
+  boolean hasAccessTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
+      OAuth2AuthorizedClient client) {
+    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getAccessToken);
   }
 
   public Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(HttpServletRequest req) {
@@ -147,17 +159,33 @@ public class OAuth2CookieService {
       return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
           .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));
     } catch (JwtException exp) {
-      throw new OAuth2AuthenticationException(exp);
-      // TODO make Exception include stacktrace
+      LOGGER.debug("decoding the jwt cookie '{}' value failed.", cookieName, exp);
     }
+    return Optional.empty();
   }
 
   private Set<String> getScopesFromJwt(Jwt jwt) {
-     // sometimes Keycloak uses "scp" instead
+    // sometimes Keycloak uses "scp" instead
     List<String> scopes = Stream.of("scope", "scp")
         .map(jwt::getClaimAsStringList)
         .filter(Objects::nonNull)
         .findFirst().orElse(List.of());
     return new HashSet<>(scopes);
   }
+
+  private boolean equalsTokenValues(Optional<OAuth2AuthorizedClient> oldClientOpt,
+      OAuth2AuthorizedClient client,
+      Function<? super OAuth2AuthorizedClient, ? extends AbstractOAuth2Token> getValueFunc) {
+    return !Objects.equals(getOptTokenValue(oldClientOpt, getValueFunc),
+        getOptTokenValue(Optional.ofNullable(client), getValueFunc));
+  }
+
+  private String getOptTokenValue(Optional<OAuth2AuthorizedClient> clientOpt,
+      Function<? super OAuth2AuthorizedClient, ? extends AbstractOAuth2Token> getValueFunc) {
+    return clientOpt
+        .map(getValueFunc)
+        .map(AbstractOAuth2Token::getTokenValue)
+        .orElse(null);
+  }
+
 }

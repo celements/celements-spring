@@ -1,6 +1,7 @@
 package com.celements.spring.security;
 
 import static com.celements.execution.XWikiExecutionProp.*;
+import static com.celements.logging.LogUtils.*;
 
 import java.util.Optional;
 
@@ -17,16 +18,16 @@ import org.xwiki.model.reference.WikiReference;
 import com.celements.wiki.service.WikiManagerService;
 
 @Component
-public class OAuthTenantRequestMatcher implements RequestMatcher {
+public class OAuth2TenantRequestMatcher implements RequestMatcher {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OAuthTenantRequestMatcher.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2TenantRequestMatcher.class);
 
   private final IdentityService identityService;
   private final WikiManagerService wikiManager;
   private final Execution execution;
 
   @Inject
-  public OAuthTenantRequestMatcher(
+  public OAuth2TenantRequestMatcher(
       IdentityService identityService,
       WikiManagerService wikiManager,
       Execution execution) {
@@ -35,17 +36,17 @@ public class OAuthTenantRequestMatcher implements RequestMatcher {
     this.execution = execution;
   }
 
+  /**
+   * evaluates if the current request-tenant has an enabled oicd configuration and thus should be
+   * handled by the security chain.
+   */
   @Override
   public boolean matches(HttpServletRequest request) {
     boolean oicdEnabled = getWikiRef().map(wikiManager::isOicdEnabled).orElse(false);
     boolean configValid = identityService.isConfigValid();
-    LOGGER.debug("check oicd config for [{}], oicdEnabled={}, configValid={}", getWikiNameForLog(),
-        oicdEnabled, configValid);
+    LOGGER.debug("check oicd config for '{}', oicdEnabled '{}', configValid '{}'",
+        defer(() -> getWikiRef().orElse(null)), oicdEnabled, configValid);
     return oicdEnabled && configValid;
-  }
-
-  private String getWikiNameForLog() {
-    return getWikiRef().map(WikiReference::getName).orElse("no wiki found");
   }
 
   private Optional<WikiReference> getWikiRef() {

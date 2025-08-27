@@ -2,6 +2,7 @@ package com.celements.spring.security;
 
 import java.io.IOException;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -10,6 +11,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 public class OAuth2CookieAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
@@ -24,7 +26,7 @@ public class OAuth2CookieAuthenticationSuccessHandler implements AuthenticationS
 
   @Override
   public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-      Authentication authentication) throws IOException {
+      Authentication authentication) throws IOException, ServletException {
     if (authentication instanceof OAuth2AuthenticationToken) {
       OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
       OAuth2AuthorizedClient client = clientService.loadAuthorizedClient(
@@ -34,9 +36,9 @@ public class OAuth2CookieAuthenticationSuccessHandler implements AuthenticationS
         cookieService.storeTokensInCookies(response, client);
       }
     }
-    // TODO Redirect to original URL
-    // TODO fallback wiki-login-URL
-    response.sendRedirect("/");
+    var saved = new SavedRequestAwareAuthenticationSuccessHandler();
+    saved.setDefaultTargetUrl("/");
+    saved.onAuthenticationSuccess(request, response, authentication);
   }
 
 }

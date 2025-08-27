@@ -41,7 +41,7 @@ public class CelSecurityConfig {
   private final OAuth2CookieService cookieService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
-  private final OAuthTenantRequestMatcher oAuthTenantMatcher;
+  private final OAuth2TenantRequestMatcher oAuthTenantMatcher;
   private final Execution execution;
 
   @Inject
@@ -51,7 +51,7 @@ public class CelSecurityConfig {
       OAuth2CookieService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
-      OAuthTenantRequestMatcher oAuthTenantMatcher, 
+      OAuth2TenantRequestMatcher oAuthTenantMatcher, 
       Execution execution) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;

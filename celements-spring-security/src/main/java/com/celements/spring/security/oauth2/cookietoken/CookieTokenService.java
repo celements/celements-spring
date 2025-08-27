@@ -67,6 +67,7 @@ public class CookieTokenService {
     }
   }
 
+  @NotNull
   public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req) {
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
     return oldClientOpt

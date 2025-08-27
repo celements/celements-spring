@@ -1,4 +1,4 @@
-package com.celements.spring.security.web.filter;
+package com.celements.spring.security.oauth2.filter;
 
 import java.io.IOException;
 
@@ -9,22 +9,22 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.celements.spring.security.web.OAuth2CookieService;
+import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 
 public class TokenRefreshFilter extends OncePerRequestFilter {
 
-  private final OAuth2CookieService cookieService;
+  private final CookieTokenService tokenService;
 
-  public TokenRefreshFilter(OAuth2CookieService cookieService) {
-    this.cookieService = cookieService;
+  public TokenRefreshFilter(CookieTokenService cookieService) {
+    this.tokenService = cookieService;
   }
 
   @Override
   protected void doFilterInternal(HttpServletRequest req,
       HttpServletResponse resp, FilterChain chain)
       throws ServletException, IOException {
-    cookieService.refreshTokens(req)
-        .ifPresent(refreshedClient -> cookieService.storeTokensInCookies(resp, refreshedClient));
+    tokenService.refreshTokens(req)
+        .ifPresent(refreshedClient -> tokenService.storeTokens(resp, refreshedClient));
     chain.doFilter(req, resp);
   }
 }

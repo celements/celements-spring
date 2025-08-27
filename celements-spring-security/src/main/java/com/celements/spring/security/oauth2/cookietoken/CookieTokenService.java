@@ -1,4 +1,4 @@
-package com.celements.spring.security.web;
+package com.celements.spring.security.oauth2.cookietoken;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -30,13 +30,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.util.WebUtils;
 
-import com.celements.spring.security.api.IdentityService;
-import com.celements.spring.security.auth.WikiClientRegistrationRepository;
+import com.celements.spring.security.oauth2.IdentityService;
+import com.celements.spring.security.oauth2.auth.WikiClientRegistrationRepository;
 
 @Service
-public class OAuth2CookieService {
+public class CookieTokenService {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2CookieService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CookieTokenService.class);
 
   public static final String COOKIE_ACCESS_TOKEN = "access_token";
   public static final String COOKIE_REFRESH_TOKEN = "refresh_token";
@@ -45,7 +45,7 @@ public class OAuth2CookieService {
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientManager authorizedClientManager;
 
-  public OAuth2CookieService(
+  public CookieTokenService(
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService,
       OAuth2AuthorizedClientManager authorizedClientManager) {
@@ -54,7 +54,7 @@ public class OAuth2CookieService {
     this.authorizedClientManager = authorizedClientManager;
   }
 
-  public void storeTokensInCookies(@NotNull HttpServletResponse response,
+  public void storeTokens(@NotNull HttpServletResponse response,
       @NotNull OAuth2AuthorizedClient client) {
     OAuth2AccessToken accessToken = client.getAccessToken();
     OAuth2RefreshToken refreshToken = client.getRefreshToken();

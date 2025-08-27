@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.oauth2;
 
 import static com.celements.logging.LogUtils.*;
 
@@ -28,14 +28,13 @@ import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
 import com.celements.auth.user.UserService;
-import com.celements.spring.security.api.IdentityService;
-import com.celements.spring.security.web.CookieBearerTokenResolver;
-import com.celements.spring.security.web.OAuth2CookieAuthenticationSuccessHandler;
-import com.celements.spring.security.web.OAuth2CookieService;
-import com.celements.spring.security.web.OAuth2TenantRequestMatcher;
-import com.celements.spring.security.web.WikiAuthenticationEntryPoint;
-import com.celements.spring.security.web.filter.ExecutionContextAuthenticationFilter;
-import com.celements.spring.security.web.filter.TokenRefreshFilter;
+import com.celements.spring.security.oauth2.cookietoken.CookieBearerTokenResolver;
+import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
+import com.celements.spring.security.oauth2.filter.ExecutionContextAuthenticationFilter;
+import com.celements.spring.security.oauth2.filter.TokenRefreshFilter;
+import com.celements.spring.security.oauth2.wiki.CelAuthenticationSuccessHandler;
+import com.celements.spring.security.oauth2.wiki.TenantOicdActiveRequestMatcher;
+import com.celements.spring.security.oauth2.wiki.WikiAuthenticationEntryPoint;
 
 @Configuration
 @EnableWebSecurity
@@ -46,20 +45,20 @@ public class CelSecurityFilterChainConfig {
 
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientService authorizedClientService;
-  private final OAuth2CookieService cookieService;
+  private final CookieTokenService cookieService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
-  private final OAuth2TenantRequestMatcher oAuthTenantMatcher;
+  private final TenantOicdActiveRequestMatcher oAuthTenantMatcher;
   private final Execution execution;
 
   @Inject
   public CelSecurityFilterChainConfig(
       IdentityService identityService,
       OAuth2AuthorizedClientService authorizedClientService, 
-      OAuth2CookieService cookieService,
+      CookieTokenService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
-      OAuth2TenantRequestMatcher oAuthTenantMatcher, 
+      TenantOicdActiveRequestMatcher oAuthTenantMatcher, 
       Execution execution) {
     this.identityService = identityService;
     this.authorizedClientService = authorizedClientService;
@@ -83,7 +82,7 @@ public class CelSecurityFilterChainConfig {
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")
-            .successHandler(new OAuth2CookieAuthenticationSuccessHandler(authorizedClientService,
+            .successHandler(new CelAuthenticationSuccessHandler(authorizedClientService,
                 cookieService)))
         .oauth2ResourceServer(rs -> rs
             .bearerTokenResolver(new CookieBearerTokenResolver(cookieService))

@@ -1,4 +1,4 @@
-package com.celements.spring.security.api;
+package com.celements.spring.security.oauth2;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;

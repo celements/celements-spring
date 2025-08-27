@@ -1,4 +1,4 @@
-package com.celements.spring.security.web.filter;
+package com.celements.spring.security.oauth2.filter;
 
 import java.io.IOException;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package com.celements.spring.security.web;
+package com.celements.spring.security.oauth2.cookietoken;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,9 +11,9 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CookieBearerTokenResolver.class);
 
-  private final OAuth2CookieService cookieService;
+  private final CookieTokenService cookieService;
 
-  public CookieBearerTokenResolver(OAuth2CookieService cookieService) {
+  public CookieBearerTokenResolver(CookieTokenService cookieService) {
     this.cookieService = cookieService;
   }
 

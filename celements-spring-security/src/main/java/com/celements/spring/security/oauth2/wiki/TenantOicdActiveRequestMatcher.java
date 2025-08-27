@@ -1,4 +1,4 @@
-package com.celements.spring.security.web;
+package com.celements.spring.security.oauth2.wiki;
 
 import static com.celements.execution.XWikiExecutionProp.*;
 import static com.celements.logging.LogUtils.*;
@@ -15,20 +15,25 @@ import org.springframework.stereotype.Component;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.WikiReference;
 
-import com.celements.spring.security.api.IdentityService;
+import com.celements.spring.security.oauth2.IdentityService;
 import com.celements.wiki.service.WikiManagerService;
 
+/**
+ * evaluates if the current request-tenant has an enabled oicd configuration
+ * and thus should be handled by the security chain.
+ */
 @Component
-public class OAuth2TenantRequestMatcher implements RequestMatcher {
+public class TenantOicdActiveRequestMatcher implements RequestMatcher {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2TenantRequestMatcher.class);
+  private static final Logger LOGGER = LoggerFactory
+      .getLogger(TenantOicdActiveRequestMatcher.class);
 
   private final IdentityService identityService;
   private final WikiManagerService wikiManager;
   private final Execution execution;
 
   @Inject
-  public OAuth2TenantRequestMatcher(
+  public TenantOicdActiveRequestMatcher(
       IdentityService identityService,
       WikiManagerService wikiManager,
       Execution execution) {
@@ -37,10 +42,6 @@ public class OAuth2TenantRequestMatcher implements RequestMatcher {
     this.execution = execution;
   }
 
-  /**
-   * evaluates if the current request-tenant has an enabled oicd configuration and thus should be
-   * handled by the security chain.
-   */
   @Override
   public boolean matches(HttpServletRequest request) {
     boolean oicdEnabled = getWikiRef().map(wikiManager::isOicdEnabled).orElse(false);

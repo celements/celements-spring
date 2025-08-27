@@ -1,4 +1,4 @@
-package com.celements.spring.security.auth;
+package com.celements.spring.security.oauth2.auth;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.stereotype.Component;
 
-import com.celements.spring.security.api.IdentityService;
+import com.celements.spring.security.oauth2.IdentityService;
 
 @Component
 public class WikiClientRegistrationRepository implements ClientRegistrationRepository {

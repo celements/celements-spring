@@ -1,4 +1,4 @@
-package com.celements.spring.security.web;
+package com.celements.spring.security.oauth2.wiki;
 
 import java.io.IOException;
 
@@ -13,15 +13,17 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
-public class OAuth2CookieAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
+
+public class CelAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
   private final OAuth2AuthorizedClientService clientService;
-  private final OAuth2CookieService cookieService;
+  private final CookieTokenService tokenService;
 
-  public OAuth2CookieAuthenticationSuccessHandler(OAuth2AuthorizedClientService clientService,
-      OAuth2CookieService cookieService) {
+  public CelAuthenticationSuccessHandler(OAuth2AuthorizedClientService clientService,
+      CookieTokenService cookieService) {
     this.clientService = clientService;
-    this.cookieService = cookieService;
+    this.tokenService = cookieService;
   }
 
   @Override
@@ -33,7 +35,7 @@ public class OAuth2CookieAuthenticationSuccessHandler implements AuthenticationS
           oauthToken.getAuthorizedClientRegistrationId(),
           oauthToken.getName());
       if (client != null) {
-        cookieService.storeTokensInCookies(response, client);
+        tokenService.storeTokens(response, client);
       }
     }
     var saved = new SavedRequestAwareAuthenticationSuccessHandler();

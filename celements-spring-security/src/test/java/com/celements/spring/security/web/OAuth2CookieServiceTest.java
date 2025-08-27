@@ -12,16 +12,17 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 
 import com.celements.common.test.AbstractComponentTest;
-import com.celements.spring.security.api.IdentityService;
+import com.celements.spring.security.oauth2.IdentityService;
+import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 
 public class OAuth2CookieServiceTest extends AbstractComponentTest {
 
-  private OAuth2CookieService oauth2CookieService;
+  private CookieTokenService oauth2CookieService;
 
   @Before
   public void prepare() throws Exception {
     registerComponentMock(IdentityService.class);
-    oauth2CookieService = getSpringContext().getBean(OAuth2CookieService.class);
+    oauth2CookieService = getSpringContext().getBean(CookieTokenService.class);
   }
 
   @Test

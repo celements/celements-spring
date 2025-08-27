@@ -1,6 +1,8 @@
 package com.celements.spring.security;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.validation.constraints.NotEmpty;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,20 +26,28 @@ public class WikiClientRegistrationRepository implements ClientRegistrationRepos
   }
 
   @Override
-  public ClientRegistration findByRegistrationId(String registrationId) {
+  @Nullable
+  public ClientRegistration findByRegistrationId(@NotEmpty String registrationId) {
     LOGGER.debug("findByRegistrationId for {}", registrationId);
-    return ClientRegistration.withRegistrationId(registrationId)
-        .clientId(identityService.getLoginClientId())
-        .clientSecret(identityService.getLoginClientSecret())
-        .issuerUri(identityService.getIssuerUri())
-        .scope("openid", "profile", "email")
-        .authorizationUri(identityService.getOAuth2BaseUrl() + "auth")
-        .tokenUri(identityService.getOAuth2BaseUrl() + "token")
-        .jwkSetUri(identityService.getOAuth2BaseUrl() + "certs")
-        .userInfoUri(identityService.getOAuth2BaseUrl() + "userinfo")
-        .userNameAttributeName(IdTokenClaimNames.SUB)
-        .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
-        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-        .build();
+    if (isValidRegistrationId(registrationId)) {
+      return ClientRegistration.withRegistrationId(registrationId)
+          .clientId(identityService.getLoginClientId())
+          .clientSecret(identityService.getLoginClientSecret())
+          .issuerUri(identityService.getIssuerUri())
+          .scope("openid", "profile", "email")
+          .authorizationUri(identityService.getOAuth2BaseUrl() + "auth")
+          .tokenUri(identityService.getOAuth2BaseUrl() + "token")
+          .jwkSetUri(identityService.getOAuth2BaseUrl() + "certs")
+          .userInfoUri(identityService.getOAuth2BaseUrl() + "userinfo")
+          .userNameAttributeName(IdTokenClaimNames.SUB)
+          .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
+          .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+          .build();
+    }
+    return null;
+  }
+
+  private boolean isValidRegistrationId(String registrationId) {
+    return registrationId.equals(identityService.getRegistrationId());
   }
 }

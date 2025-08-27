@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web;
 
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 
 import com.celements.common.test.AbstractComponentTest;
+import com.celements.spring.security.api.IdentityService;
 
 public class OAuth2CookieServiceTest extends AbstractComponentTest {
 

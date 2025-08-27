@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.api;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 

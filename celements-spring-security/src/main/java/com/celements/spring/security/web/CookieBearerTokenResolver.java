@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web;
 
 import javax.servlet.http.HttpServletRequest;
 

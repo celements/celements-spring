@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web;
 
 import static com.celements.execution.XWikiExecutionProp.*;
 import static com.celements.logging.LogUtils.*;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.WikiReference;
 
+import com.celements.spring.security.api.IdentityService;
 import com.celements.wiki.service.WikiManagerService;
 
 @Component

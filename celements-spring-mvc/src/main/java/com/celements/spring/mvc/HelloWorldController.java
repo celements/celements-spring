@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.xwiki.context.Execution;
 
 import com.celements.execution.XWikiExecutionProp;
-import com.celements.spring.security.AuthenticatedBaseController;
+import com.celements.spring.security.api.AuthenticatedBaseController;
 import com.xpn.xwiki.XWikiContext;
 
 @RestController

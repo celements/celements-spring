@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepo
 import org.xwiki.context.Execution;
 
 import com.celements.execution.XWikiExecutionProp;
+import com.celements.spring.security.api.IdentityService;
 import com.xpn.xwiki.XWikiConstant;
 
 @Configuration

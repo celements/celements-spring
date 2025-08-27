@@ -28,13 +28,21 @@ import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
 import com.celements.auth.user.UserService;
+import com.celements.spring.security.api.IdentityService;
+import com.celements.spring.security.web.CookieBearerTokenResolver;
+import com.celements.spring.security.web.OAuth2CookieAuthenticationSuccessHandler;
+import com.celements.spring.security.web.OAuth2CookieService;
+import com.celements.spring.security.web.OAuth2TenantRequestMatcher;
+import com.celements.spring.security.web.WikiAuthenticationEntryPoint;
+import com.celements.spring.security.web.filter.ExecutionContextAuthenticationFilter;
+import com.celements.spring.security.web.filter.TokenRefreshFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(jsr250Enabled = true, prePostEnabled = true)
-public class CelSecurityConfig {
+public class CelSecurityFilterChainConfig {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityConfig.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityFilterChainConfig.class);
 
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientService authorizedClientService;
@@ -45,7 +53,7 @@ public class CelSecurityConfig {
   private final Execution execution;
 
   @Inject
-  public CelSecurityConfig(
+  public CelSecurityFilterChainConfig(
       IdentityService identityService,
       OAuth2AuthorizedClientService authorizedClientService, 
       OAuth2CookieService cookieService,

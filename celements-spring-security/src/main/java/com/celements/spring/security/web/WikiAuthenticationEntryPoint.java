@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web;
 
 import java.io.IOException;
 
@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
+
+import com.celements.spring.security.api.IdentityService;
 
 public class WikiAuthenticationEntryPoint implements AuthenticationEntryPoint {
 

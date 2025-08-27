@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -29,6 +29,9 @@ import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.web.util.WebUtils;
+
+import com.celements.spring.security.api.IdentityService;
+import com.celements.spring.security.auth.WikiClientRegistrationRepository;
 
 @Service
 public class OAuth2CookieService {

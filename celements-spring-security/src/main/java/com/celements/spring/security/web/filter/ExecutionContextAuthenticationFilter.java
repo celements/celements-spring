@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web.filter;
 
 import java.io.IOException;
 import java.util.Optional;

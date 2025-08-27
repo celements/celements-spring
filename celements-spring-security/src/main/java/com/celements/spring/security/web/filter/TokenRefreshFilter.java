@@ -1,4 +1,4 @@
-package com.celements.spring.security;
+package com.celements.spring.security.web.filter;
 
 import java.io.IOException;
 
@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.celements.spring.security.web.OAuth2CookieService;
 
 public class TokenRefreshFilter extends OncePerRequestFilter {
 

@@ -1,5 +1,6 @@
 package com.celements.spring.security;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -8,9 +9,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,11 +23,11 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import org.springframework.web.util.WebUtils;
 
 @Service
@@ -47,7 +51,8 @@ public class OAuth2CookieService {
     this.authorizedClientManager = authorizedClientManager;
   }
 
-  public void storeTokensInCookies(HttpServletResponse response, OAuth2AuthorizedClient client) {
+  public void storeTokensInCookies(@NotNull HttpServletResponse response,
+      @NotNull OAuth2AuthorizedClient client) {
     OAuth2AccessToken accessToken = client.getAccessToken();
     OAuth2RefreshToken refreshToken = client.getRefreshToken();
     // Set as HttpOnly cookies
@@ -59,7 +64,7 @@ public class OAuth2CookieService {
     }
   }
 
-  public Optional<OAuth2AuthorizedClient> refreshTokens(HttpServletRequest req) {
+  public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req) {
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
     return oldClientOpt
         .map(existingClient -> OAuth2AuthorizeRequest
@@ -83,21 +88,19 @@ public class OAuth2CookieService {
     return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getAccessToken);
   }
 
-  public Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(HttpServletRequest req) {
-    try {
-      Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
-      Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
-      if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
-        OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
-        OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
-        return Optional.of(new OAuth2AuthorizedClient(
-            registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
-            accessJwtOpt.get().getSubject(),
-            accessToken,
-            refreshToken));
-      }
-    } catch (OAuth2AuthenticationException exp) {
-      LOGGER.info("No valid access token found", exp);
+  @NotNull
+  private Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(
+      @NotNull HttpServletRequest req) {
+    Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
+    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
+    if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
+      OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
+      OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
+      return Optional.of(new OAuth2AuthorizedClient(
+          registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
+          accessJwtOpt.get().getSubject(),
+          accessToken,
+          refreshToken));
     }
     return Optional.empty();
   }
@@ -105,11 +108,10 @@ public class OAuth2CookieService {
   /**
    * @param request
    *          the request
-   * @return the Refresh Token or optional.empty if none found
-   * @throws OAuth2AuthenticationException
-   *           if the found token is invalid
+   * @return the Refresh Token or optional.empty if none found or invalid
    */
-  public Optional<OAuth2RefreshToken> getRefreshTokenFromCookie(HttpServletRequest req) {
+  @NotNull
+  private Optional<OAuth2RefreshToken> getRefreshTokenFromCookie(@NotNull HttpServletRequest req) {
     return getJwtFromCookie(req, COOKIE_REFRESH_TOKEN)
         .map(refreshToken -> new OAuth2RefreshToken(
             refreshToken.getTokenValue(),
@@ -123,11 +125,10 @@ public class OAuth2CookieService {
    *
    * @param request
    *          the request
-   * @return the Bearer Access Token or optional.empty if none found
-   * @throws OAuth2AuthenticationException
-   *           if the found token is invalid
+   * @return the Bearer Access Token or optional.empty if none found or invalid
    */
-  public Optional<OAuth2AccessToken> getAccessTokenFromCookie(HttpServletRequest req) {
+  @NotNull
+  public Optional<OAuth2AccessToken> getAccessTokenFromCookie(@NotNull HttpServletRequest req) {
     return getJwtFromCookie(req, COOKIE_ACCESS_TOKEN)
         .map(this::reconstructAccessTokenFromJwt);
   }
@@ -141,9 +142,11 @@ public class OAuth2CookieService {
         getScopesFromJwt(accessToken));
   }
 
-  public void setTokenCookie(HttpServletResponse response, String name, String value,
-      java.time.Instant expiry) {
-    Cookie cookie = new Cookie(name, value);
+  private void setTokenCookie(@NotNull HttpServletResponse response, @NotEmpty String cookieName,
+      @Nullable String value, @Nullable Instant expiry) {
+    Assert.notNull(response, "Response must not be null");
+    Assert.hasText(cookieName, "cookieName must not be null nor empty");
+    Cookie cookie = new Cookie(cookieName, value);
     cookie.setHttpOnly(true);
     cookie.setSecure(true);
     cookie.setPath("/");
@@ -154,7 +157,11 @@ public class OAuth2CookieService {
     response.addCookie(cookie);
   }
 
-  private Optional<Jwt> getJwtFromCookie(HttpServletRequest req, String cookieName) {
+  @NotNull
+  private Optional<Jwt> getJwtFromCookie(@NotNull HttpServletRequest req,
+      @NotEmpty String cookieName) {
+    Assert.notNull(req, "Request must not be null");
+    Assert.hasText(cookieName, "cookieName must not be null nor empty");
     try {
       return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
           .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));

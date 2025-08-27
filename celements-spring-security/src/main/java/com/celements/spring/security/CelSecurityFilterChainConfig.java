@@ -1,4 +1,4 @@
-package com.celements.spring.security.oauth2;
+package com.celements.spring.security;
 
 import static com.celements.logging.LogUtils.*;
 
@@ -28,6 +28,7 @@ import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
 import com.celements.auth.user.UserService;
+import com.celements.spring.security.oauth2.IdentityService;
 import com.celements.spring.security.oauth2.cookietoken.CookieBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 import com.celements.spring.security.oauth2.filter.ExecutionContextAuthenticationFilter;

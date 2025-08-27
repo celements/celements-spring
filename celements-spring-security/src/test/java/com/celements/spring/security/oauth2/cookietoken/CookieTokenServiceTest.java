@@ -1,4 +1,4 @@
-package com.celements.spring.security.web;
+package com.celements.spring.security.oauth2.cookietoken;
 
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
@@ -15,14 +15,14 @@ import com.celements.common.test.AbstractComponentTest;
 import com.celements.spring.security.oauth2.IdentityService;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 
-public class OAuth2CookieServiceTest extends AbstractComponentTest {
+public class CookieTokenServiceTest extends AbstractComponentTest {
 
-  private CookieTokenService oauth2CookieService;
+  private CookieTokenService tokenService;
 
   @Before
   public void prepare() throws Exception {
     registerComponentMock(IdentityService.class);
-    oauth2CookieService = getSpringContext().getBean(CookieTokenService.class);
+    tokenService = getSpringContext().getBean(CookieTokenService.class);
   }
 
   @Test
@@ -33,7 +33,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldClientMock.getAccessToken()).andReturn(null).atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertFalse(oauth2CookieService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
+    assertFalse(tokenService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -47,7 +47,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldClientMock.getAccessToken()).andReturn(null).atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertFalse(oauth2CookieService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
+    assertFalse(tokenService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -63,7 +63,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldAccessTokenMock.getTokenValue()).andReturn("newJwtToken").atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertTrue(oauth2CookieService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
+    assertTrue(tokenService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -79,7 +79,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldAccessTokenMock.getTokenValue()).andReturn("newJwtToken").atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertTrue(oauth2CookieService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
+    assertTrue(tokenService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -95,7 +95,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldAccessTokenMock.getTokenValue()).andReturn("validJwtToken").atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertFalse(oauth2CookieService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
+    assertFalse(tokenService.hasAccessTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -107,7 +107,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldClientMock.getRefreshToken()).andReturn(null).atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertFalse(oauth2CookieService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
+    assertFalse(tokenService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -121,7 +121,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldClientMock.getRefreshToken()).andReturn(null).atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertFalse(oauth2CookieService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
+    assertFalse(tokenService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -137,7 +137,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldRefreshTokenMock.getTokenValue()).andReturn("newJwtRefreshToken").atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertTrue(oauth2CookieService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
+    assertTrue(tokenService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -153,7 +153,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldRefreshTokenMock.getTokenValue()).andReturn("newJwtRefreshToken").atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertTrue(oauth2CookieService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
+    assertTrue(tokenService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 
@@ -169,7 +169,7 @@ public class OAuth2CookieServiceTest extends AbstractComponentTest {
     expect(oldRefreshTokenMock.getTokenValue()).andReturn("validJwtRefreshToken").atLeastOnce();
     Optional<OAuth2AuthorizedClient> oldClientMockOpt = Optional.of(oldClientMock);
     replayDefault();
-    assertFalse(oauth2CookieService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
+    assertFalse(tokenService.hasRefreshTokenChanged(oldClientMockOpt, clientMock));
     verifyDefault();
   }
 

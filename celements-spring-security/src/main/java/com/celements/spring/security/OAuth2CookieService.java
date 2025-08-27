@@ -151,7 +151,7 @@ public class OAuth2CookieService {
     cookie.setSecure(true);
     cookie.setPath("/");
     if (expiry != null) {
-      long maxAge = (expiry.getEpochSecond() - java.time.Instant.now().getEpochSecond());
+      long maxAge = (expiry.getEpochSecond() - Instant.now().getEpochSecond());
       cookie.setMaxAge((int) maxAge);
     }
     response.addCookie(cookie);

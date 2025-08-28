@@ -38,15 +38,11 @@ public class OAuth2Config {
   private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2Config.class);
 
   private final IdentityService identityService;
-  private final CookieTokenService tokenService;
   private final Execution execution;
 
   @Inject
-  public OAuth2Config(IdentityService identityService,
-      CookieTokenService tokenService,
-      Execution excecution) {
+  public OAuth2Config(IdentityService identityService, Execution excecution) {
     this.identityService = identityService;
-    this.tokenService = tokenService;
     this.execution = excecution;
   }
 
@@ -92,7 +88,7 @@ public class OAuth2Config {
 
   @Bean
   @NotNull
-  public LogoutHandler revokeRefreshTokenHandler() {
+  public LogoutHandler revokeRefreshTokenHandler(CookieTokenService tokenService) {
     return (request, response, authentication) -> {
       var refreshTokenOpt = tokenService.getRefreshToken(request);
       if (refreshTokenOpt.isEmpty()) {

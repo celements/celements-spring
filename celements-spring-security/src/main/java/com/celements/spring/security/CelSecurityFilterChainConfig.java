@@ -47,40 +47,31 @@ public class CelSecurityFilterChainConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityFilterChainConfig.class);
 
   private final IdentityService identityService;
-  private final OAuth2AuthorizedClientService authorizedClientService;
-  private final CookieTokenService tokenService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
-  private final TenantOicdActiveRequestMatcher oAuthTenantMatcher;
-  private final LogoutHandler revokeRefreshTokenHandler;
-  private final LogoutSuccessHandler oicdLogoutSuccessHandler;
   private final Execution execution;
 
   @Inject
   public CelSecurityFilterChainConfig(
       IdentityService identityService,
-      OAuth2AuthorizedClientService authorizedClientService,
-      CookieTokenService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
-      TenantOicdActiveRequestMatcher oAuthTenantMatcher,
-      LogoutHandler revokeRefreshTokenHandler,
-      LogoutSuccessHandler oicdLogoutSuccessHandler,
       Execution execution) {
     this.identityService = identityService;
-    this.authorizedClientService = authorizedClientService;
-    this.tokenService = cookieService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
-    this.oAuthTenantMatcher = oAuthTenantMatcher;
-    this.revokeRefreshTokenHandler = revokeRefreshTokenHandler;
-    this.oicdLogoutSuccessHandler = oicdLogoutSuccessHandler;
     this.execution = execution;
   }
 
   @Bean
   @Order(1)
-  public SecurityFilterChain loginFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain loginFilterChain(
+      HttpSecurity http,
+      LogoutHandler revokeRefreshTokenHandler,
+      LogoutSuccessHandler oicdLogoutSuccessHandler,
+      OAuth2AuthorizedClientService authorizedClientService,
+      TenantOicdActiveRequestMatcher oAuthTenantMatcher,
+      CookieTokenService tokenService) throws Exception {
     LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm), defer(identityService::getLoginUrl));
     return http

@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -47,6 +48,7 @@ public class CookieTokenService {
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientManager authorizedClientManager;
 
+  @Inject
   public CookieTokenService(
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService,

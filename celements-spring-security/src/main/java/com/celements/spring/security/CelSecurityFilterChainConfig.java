@@ -100,6 +100,9 @@ public class CelSecurityFilterChainConfig {
             BearerTokenAuthenticationFilter.class)
         .logout(l -> l
             .logoutUrl("/logout")
+            .deleteCookies(
+                CookieTokenService.COOKIE_ACCESS_TOKEN,
+                CookieTokenService.COOKIE_REFRESH_TOKEN)
             .logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)))
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))

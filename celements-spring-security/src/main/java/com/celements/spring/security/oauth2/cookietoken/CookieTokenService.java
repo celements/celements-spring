@@ -58,10 +58,12 @@ public class CookieTokenService {
     this.authorizedClientManager = authorizedClientManager;
   }
 
+  @NotNull
   public Optional<String> getAccessToken(@NotNull HttpServletRequest req) {
     return getTokenValue(req, CookieTokenService.COOKIE_ACCESS_TOKEN);
   }
 
+  @NotNull
   public Optional<String> getRefreshToken(@NotNull HttpServletRequest req) {
     return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN);
   }

@@ -7,9 +7,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -32,6 +34,7 @@ import org.springframework.web.util.WebUtils;
 
 import com.celements.spring.security.oauth2.IdentityService;
 import com.celements.spring.security.oauth2.auth.WikiClientRegistrationRepository;
+import com.google.common.base.Strings;
 
 @Service
 public class CookieTokenService {
@@ -45,6 +48,7 @@ public class CookieTokenService {
   private final IdentityService identityService;
   private final OAuth2AuthorizedClientManager authorizedClientManager;
 
+  @Inject
   public CookieTokenService(
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService,
@@ -52,6 +56,21 @@ public class CookieTokenService {
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
     this.authorizedClientManager = authorizedClientManager;
+  }
+
+  public Optional<String> getAccessToken(@NotNull HttpServletRequest req) {
+    return getTokenValue(req, CookieTokenService.COOKIE_ACCESS_TOKEN);
+  }
+
+  public Optional<String> getRefreshToken(@NotNull HttpServletRequest req) {
+    return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN);
+  }
+
+  private Optional<String> getTokenValue(@NotNull HttpServletRequest req,
+      @NotEmpty String cookieName) {
+    return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
+        .map(Cookie::getValue)
+        .filter(Predicate.not(Strings::isNullOrEmpty));
   }
 
   public void storeTokens(@NotNull HttpServletResponse response,

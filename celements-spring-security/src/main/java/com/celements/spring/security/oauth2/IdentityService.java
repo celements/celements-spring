@@ -36,6 +36,9 @@ public interface IdentityService {
   String getIssuerUri();
 
   @NotEmpty
+  String getRevokeUrl();
+
+  @NotEmpty
   String getLoginUrl();
 
   @NotEmpty

@@ -1,4 +1,4 @@
-package com.celements.spring.security.oauth2;
+package com.celements.spring.security;
 
 import static com.celements.logging.LogUtils.*;
 
@@ -22,12 +22,15 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthen
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
 import com.celements.auth.user.UserService;
+import com.celements.spring.security.oauth2.IdentityService;
 import com.celements.spring.security.oauth2.cookietoken.CookieBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 import com.celements.spring.security.oauth2.filter.ExecutionContextAuthenticationFilter;
@@ -44,34 +47,31 @@ public class CelSecurityFilterChainConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(CelSecurityFilterChainConfig.class);
 
   private final IdentityService identityService;
-  private final OAuth2AuthorizedClientService authorizedClientService;
-  private final CookieTokenService cookieService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
-  private final TenantOicdActiveRequestMatcher oAuthTenantMatcher;
   private final Execution execution;
 
   @Inject
   public CelSecurityFilterChainConfig(
       IdentityService identityService,
-      OAuth2AuthorizedClientService authorizedClientService, 
-      CookieTokenService cookieService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
-      TenantOicdActiveRequestMatcher oAuthTenantMatcher, 
       Execution execution) {
     this.identityService = identityService;
-    this.authorizedClientService = authorizedClientService;
-    this.cookieService = cookieService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
-    this.oAuthTenantMatcher = oAuthTenantMatcher;
     this.execution = execution;
   }
 
   @Bean
   @Order(1)
-  public SecurityFilterChain loginFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain loginFilterChain(
+      HttpSecurity http,
+      LogoutHandler revokeRefreshTokenHandler,
+      LogoutSuccessHandler oicdLogoutSuccessHandler,
+      OAuth2AuthorizedClientService authorizedClientService,
+      TenantOicdActiveRequestMatcher oAuthTenantMatcher,
+      CookieTokenService tokenService) throws Exception {
     LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm), defer(identityService::getLoginUrl));
     return http
@@ -83,16 +83,25 @@ public class CelSecurityFilterChainConfig {
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")
             .successHandler(new CelAuthenticationSuccessHandler(authorizedClientService,
-                cookieService)))
+                tokenService)))
         .oauth2ResourceServer(rs -> rs
-            .bearerTokenResolver(new CookieBearerTokenResolver(cookieService))
+            .bearerTokenResolver(new CookieBearerTokenResolver(tokenService))
             .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
-            new TokenRefreshFilter(cookieService),
+            new TokenRefreshFilter(tokenService),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new ExecutionContextAuthenticationFilter(userService, execution),
             BearerTokenAuthenticationFilter.class)
+        .logout(l -> l
+            .logoutUrl("/logout")
+            .addLogoutHandler(revokeRefreshTokenHandler)
+            .deleteCookies(
+                CookieTokenService.COOKIE_ACCESS_TOKEN,
+                CookieTokenService.COOKIE_REFRESH_TOKEN)
+            .logoutSuccessHandler(oicdLogoutSuccessHandler)
+            .clearAuthentication(true)
+            .invalidateHttpSession(true))
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
@@ -126,5 +135,4 @@ public class CelSecurityFilterChainConfig {
         .ignoring()
         .antMatchers("/favicon.ico", "/api/v3/api-docs");
   }
-
 }

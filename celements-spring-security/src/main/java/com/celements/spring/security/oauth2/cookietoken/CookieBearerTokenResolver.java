@@ -11,16 +11,16 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CookieBearerTokenResolver.class);
 
-  private final CookieTokenService cookieService;
+  private final CookieTokenService tokenService;
 
-  public CookieBearerTokenResolver(CookieTokenService cookieService) {
-    this.cookieService = cookieService;
+  public CookieBearerTokenResolver(CookieTokenService tokenService) {
+    this.tokenService = tokenService;
   }
 
   @Override
   public String resolve(HttpServletRequest req) {
     try {
-      return cookieService.getAccessTokenFromCookie(req)
+      return tokenService.getAccessTokenFromCookie(req)
           .map(t -> t.getTokenValue())
           .orElse(null);
     } catch (OAuth2AuthenticationException exp) {

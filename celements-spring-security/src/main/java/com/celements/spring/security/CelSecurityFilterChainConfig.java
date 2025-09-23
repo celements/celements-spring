@@ -49,6 +49,7 @@ public class CelSecurityFilterChainConfig {
   private final IdentityService identityService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
+  private final CookieTokenService tokenService;
   private final Execution execution;
 
   @Inject
@@ -56,10 +57,12 @@ public class CelSecurityFilterChainConfig {
       IdentityService identityService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
+      CookieTokenService tokenService,
       Execution execution) {
     this.identityService = identityService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
+    this.tokenService = tokenService;
     this.execution = execution;
   }
 
@@ -70,8 +73,7 @@ public class CelSecurityFilterChainConfig {
       LogoutHandler revokeRefreshTokenHandler,
       LogoutSuccessHandler oicdLogoutSuccessHandler,
       OAuth2AuthorizedClientService authorizedClientService,
-      TenantOicdActiveRequestMatcher oAuthTenantMatcher,
-      CookieTokenService tokenService) throws Exception {
+      TenantOicdActiveRequestMatcher oAuthTenantMatcher) throws Exception {
     LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm), defer(identityService::getLoginUrl));
     return http
@@ -122,7 +124,14 @@ public class CelSecurityFilterChainConfig {
             .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .anyRequest().permitAll())
         .oauth2ResourceServer(oauth2 -> oauth2
+            .bearerTokenResolver(new CookieBearerTokenResolver(tokenService))
             .authenticationManagerResolver(authManagerResolver))
+        .addFilterBefore(
+            new TokenRefreshFilter(tokenService),
+            BearerTokenAuthenticationFilter.class)
+        .addFilterAfter(
+            new ExecutionContextAuthenticationFilter(userService, execution),
+            BearerTokenAuthenticationFilter.class)
         .exceptionHandling(exceptions -> exceptions
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
             .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))

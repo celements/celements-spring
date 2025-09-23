@@ -31,6 +31,7 @@ import org.xwiki.context.Execution;
 
 import com.celements.auth.user.UserService;
 import com.celements.spring.security.oauth2.IdentityService;
+import com.celements.spring.security.oauth2.cookietoken.CompositeBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 import com.celements.spring.security.oauth2.filter.ExecutionContextAuthenticationFilter;
@@ -87,7 +88,9 @@ public class CelSecurityFilterChainConfig {
             .successHandler(new CelAuthenticationSuccessHandler(authorizedClientService,
                 tokenService)))
         .oauth2ResourceServer(rs -> rs
-            .bearerTokenResolver(new CookieBearerTokenResolver(tokenService))
+            .bearerTokenResolver(
+                new CompositeBearerTokenResolver(
+                    new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
             new TokenRefreshFilter(tokenService),
@@ -124,7 +127,9 @@ public class CelSecurityFilterChainConfig {
             .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .anyRequest().permitAll())
         .oauth2ResourceServer(oauth2 -> oauth2
-            .bearerTokenResolver(new CookieBearerTokenResolver(tokenService))
+            .bearerTokenResolver(
+                new CompositeBearerTokenResolver(
+                    new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
             new TokenRefreshFilter(tokenService),

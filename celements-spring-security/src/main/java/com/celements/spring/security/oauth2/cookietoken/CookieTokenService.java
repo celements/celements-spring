@@ -79,7 +79,6 @@ public class CookieTokenService {
       @NotNull OAuth2AuthorizedClient client) {
     OAuth2AccessToken accessToken = client.getAccessToken();
     OAuth2RefreshToken refreshToken = client.getRefreshToken();
-    // Set as HttpOnly cookies
     setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(),
         accessToken.getExpiresAt());
     if (refreshToken != null) {
@@ -96,7 +95,6 @@ public class CookieTokenService {
         .map(existingClient -> OAuth2AuthorizeRequest
             .withClientRegistrationId(identityService.getRegistrationId())
             .principal(existingClient.getPrincipalName())
-            // here's where you hand Spring your pre‐built client:
             .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
             .build())
         .map(authorizedClientManager::authorize)
@@ -138,10 +136,10 @@ public class CookieTokenService {
    */
   @NotNull
   private Optional<OAuth2RefreshToken> getRefreshTokenFromCookie(@NotNull HttpServletRequest req) {
-    return getJwtFromCookie(req, COOKIE_REFRESH_TOKEN)
-        .map(refreshToken -> new OAuth2RefreshToken(
-            refreshToken.getTokenValue(),
-            refreshToken.getIssuedAt()));
+    return Optional.ofNullable(WebUtils.getCookie(req, COOKIE_REFRESH_TOKEN))
+        .map(Cookie::getValue)
+        .filter(Predicate.not(Strings::isNullOrEmpty))
+        .map(val -> new OAuth2RefreshToken(val, Instant.now()));
   }
 
   /**

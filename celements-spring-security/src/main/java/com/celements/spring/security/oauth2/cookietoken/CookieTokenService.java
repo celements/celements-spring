@@ -124,9 +124,16 @@ public class CookieTokenService {
       @NotNull HttpServletResponse resp) {
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
     var auth = SecurityContextHolder.getContext().getAuthentication();
+    LOGGER.debug(
+        "refresh check: authPresent='{}', accessCookie='{}', refreshCookie='{}',"
+            + " existingClient='{}' expAt='{}'",
+        (auth != null) && auth.isAuthenticated(),
+        getAccessToken(req).isPresent(),
+        getRefreshToken(req).isPresent(),
+        oldClientOpt.isPresent(),
+        oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null));
     if ((auth != null) && auth.isAuthenticated() && oldClientOpt.isPresent()
         && shouldRefresh(oldClientOpt.get())) {
-      LOGGER.debug("refreshTokens oldClient exists '{}'", oldClientOpt.isPresent());
       return oldClientOpt
           .map(existingClient -> OAuth2AuthorizeRequest
               .withClientRegistrationId(identityService.getRegistrationId())

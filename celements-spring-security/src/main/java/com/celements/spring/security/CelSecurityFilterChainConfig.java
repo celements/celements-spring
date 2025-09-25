@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.server.resource.web.access.BearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
@@ -84,6 +85,9 @@ public class CelSecurityFilterChainConfig {
             oAuthTenantMatcher))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+        .securityContext(sc -> sc
+            .securityContextRepository(new RequestAttributeSecurityContextRepository())
+            .requireExplicitSave(true))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")
             .successHandler(new CelAuthenticationSuccessHandler(authorizedClientService,
                 tokenService)))

@@ -22,12 +22,12 @@ import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
@@ -55,12 +55,12 @@ public class CookieTokenService {
 
   @Inject
   public CookieTokenService(
-      OAuth2AuthorizedClientService clientService,
+      OAuth2AuthorizedClientRepository repo,
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService) {
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
-    this.refreshOnlyAuthorizedClientManager = refreshOnlyAuthorizedClientManager(clientService);
+    this.refreshOnlyAuthorizedClientManager = refreshOnlyWebManager(repo);
   }
 
   @NotNull
@@ -102,16 +102,13 @@ public class CookieTokenService {
     return Instant.now().isAfter(access.getExpiresAt().minus(REFRESH_SKEW));
   }
 
-  OAuth2AuthorizedClientManager refreshOnlyAuthorizedClientManager(
-      OAuth2AuthorizedClientService clientService) {
-
+  OAuth2AuthorizedClientManager refreshOnlyWebManager(
+      OAuth2AuthorizedClientRepository repo) {
     var provider = OAuth2AuthorizedClientProviderBuilder.builder()
-        .refreshToken() // allow refresh
-        // .authorizationCode() // < DO NOT include here
+        .refreshToken()
         .build();
 
-    var manager = new AuthorizedClientServiceOAuth2AuthorizedClientManager(registrationRepo,
-        clientService);
+    var manager = new DefaultOAuth2AuthorizedClientManager(registrationRepo, repo);
     manager.setAuthorizedClientProvider(provider);
     return manager;
   }
@@ -143,7 +140,7 @@ public class CookieTokenService {
           .map(refreshOnlyAuthorizedClientManager::authorize)
           .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
               || hasRefreshTokenChanged(oldClientOpt, client));
-      LOGGER.debug("hasRefreshed: '{}'", hasRefreshed);
+      LOGGER.debug("hasRefreshed: '{}'", hasRefreshed.isPresent());
       return hasRefreshed;
     }
     return Optional.empty();

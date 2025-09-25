@@ -1,5 +1,6 @@
 package com.celements.spring.security.oauth2.cookietoken;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -20,9 +21,13 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
@@ -44,18 +49,18 @@ public class CookieTokenService {
   public static final String COOKIE_ACCESS_TOKEN = "access_token";
   public static final String COOKIE_REFRESH_TOKEN = "refresh_token";
 
+  private final OAuth2AuthorizedClientManager refreshOnlyAuthorizedClientManager;
   private final WikiClientRegistrationRepository registrationRepo;
   private final IdentityService identityService;
-  private final OAuth2AuthorizedClientManager authorizedClientManager;
 
   @Inject
   public CookieTokenService(
+      OAuth2AuthorizedClientService clientService,
       WikiClientRegistrationRepository registrationRepo,
-      IdentityService identityService,
-      OAuth2AuthorizedClientManager authorizedClientManager) {
+      IdentityService identityService) {
+    this.refreshOnlyAuthorizedClientManager = refreshOnlyAuthorizedClientManager(clientService);
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
-    this.authorizedClientManager = authorizedClientManager;
   }
 
   @NotNull
@@ -87,22 +92,54 @@ public class CookieTokenService {
     }
   }
 
+  private static final Duration REFRESH_SKEW = Duration.ofMinutes(2);
+
+  private boolean shouldRefresh(@NotNull OAuth2AuthorizedClient client) {
+    var access = client.getAccessToken();
+    if ((access == null) || (access.getExpiresAt() == null)) {
+      return false;
+    }
+    if (client.getRefreshToken() == null) {
+      return false;
+    }
+    return Instant.now().isAfter(access.getExpiresAt().minus(REFRESH_SKEW));
+  }
+
+  OAuth2AuthorizedClientManager refreshOnlyAuthorizedClientManager(
+      OAuth2AuthorizedClientService clientService) {
+
+    var provider = OAuth2AuthorizedClientProviderBuilder.builder()
+        .refreshToken() // allow refresh
+        // .authorizationCode() // < DO NOT include here
+        .build();
+
+    var manager = new AuthorizedClientServiceOAuth2AuthorizedClientManager(registrationRepo,
+        clientService);
+    manager.setAuthorizedClientProvider(provider);
+    return manager;
+  }
+
   @NotNull
   public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req,
       @NotNull HttpServletResponse resp) {
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
-    LOGGER.debug("refreshTokens oldClient exists '{}'", oldClientOpt.isPresent());
-    return oldClientOpt
-        .map(existingClient -> OAuth2AuthorizeRequest
-            .withClientRegistrationId(identityService.getRegistrationId())
-            .principal(existingClient.getPrincipalName())
-            .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
-            .attribute(HttpServletRequest.class.getName(), req)
-            .attribute(HttpServletResponse.class.getName(), resp)
-            .build())
-        .map(authorizedClientManager::authorize)
-        .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
-            || hasRefreshTokenChanged(oldClientOpt, client));
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    if ((auth != null) && auth.isAuthenticated() && oldClientOpt.isPresent()
+        && shouldRefresh(oldClientOpt.get())) {
+      LOGGER.debug("refreshTokens oldClient exists '{}'", oldClientOpt.isPresent());
+      return oldClientOpt
+          .map(existingClient -> OAuth2AuthorizeRequest
+              .withClientRegistrationId(identityService.getRegistrationId())
+              .principal(auth)
+              .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
+              .attribute(HttpServletRequest.class.getName(), req)
+              .attribute(HttpServletResponse.class.getName(), resp)
+              .build())
+          .map(refreshOnlyAuthorizedClientManager::authorize)
+          .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
+              || hasRefreshTokenChanged(oldClientOpt, client));
+    }
+    return Optional.empty();
   }
 
   boolean hasRefreshTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,

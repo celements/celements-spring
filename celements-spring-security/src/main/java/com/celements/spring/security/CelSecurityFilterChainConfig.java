@@ -96,7 +96,7 @@ public class CelSecurityFilterChainConfig {
                 new CompositeBearerTokenResolver(
                     new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
-        .addFilterBefore(
+        .addFilterAfter(
             new TokenRefreshFilter(tokenService),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(

@@ -88,7 +88,8 @@ public class CookieTokenService {
   }
 
   @NotNull
-  public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req) {
+  public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req,
+      @NotNull HttpServletResponse resp) {
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
     LOGGER.debug("refreshTokens oldClient exists '{}'", oldClientOpt.isPresent());
     return oldClientOpt
@@ -96,6 +97,8 @@ public class CookieTokenService {
             .withClientRegistrationId(identityService.getRegistrationId())
             .principal(existingClient.getPrincipalName())
             .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
+            .attribute(HttpServletRequest.class.getName(), req)
+            .attribute(HttpServletResponse.class.getName(), resp)
             .build())
         .map(authorizedClientManager::authorize)
         .filter(client -> hasAccessTokenChanged(oldClientOpt, client)

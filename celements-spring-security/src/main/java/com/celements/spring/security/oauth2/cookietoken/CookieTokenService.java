@@ -244,7 +244,11 @@ public class CookieTokenService {
       return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
           .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));
     } catch (JwtException exp) {
-      LOGGER.debug("decoding the jwt cookie '{}' value failed.", cookieName, exp);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("decoding the jwt cookie '{}' value failed.", cookieName, exp);
+      } else {
+        LOGGER.info("decoding the jwt cookie '{}' value failed.", cookieName);
+      }
     }
     return Optional.empty();
   }

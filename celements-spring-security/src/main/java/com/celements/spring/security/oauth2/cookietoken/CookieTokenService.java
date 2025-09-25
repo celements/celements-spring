@@ -1,5 +1,7 @@
 package com.celements.spring.security.oauth2.cookietoken;
 
+import static com.celements.logging.LogUtils.*;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -127,6 +129,9 @@ public class CookieTokenService {
         oldClientOpt.isPresent(),
         oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null),
         oldClientOpt.map(this::shouldRefresh).orElse(false));
+    LOGGER.debug("principal authName='{}' clientName='{}'",
+        auth != null ? auth.getName() : null,
+        defer(() -> oldClientOpt.map(OAuth2AuthorizedClient::getPrincipalName).orElse(null)));
     if ((auth != null) && auth.isAuthenticated() && oldClientOpt.isPresent()
         && shouldRefresh(oldClientOpt.get())) {
       var hasRefreshed = oldClientOpt

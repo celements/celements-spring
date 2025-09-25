@@ -58,9 +58,9 @@ public class CookieTokenService {
       OAuth2AuthorizedClientService clientService,
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService) {
-    this.refreshOnlyAuthorizedClientManager = refreshOnlyAuthorizedClientManager(clientService);
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
+    this.refreshOnlyAuthorizedClientManager = refreshOnlyAuthorizedClientManager(clientService);
   }
 
   @NotNull

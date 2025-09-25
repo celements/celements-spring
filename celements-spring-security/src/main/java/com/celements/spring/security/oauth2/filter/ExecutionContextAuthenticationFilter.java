@@ -42,7 +42,7 @@ public class ExecutionContextAuthenticationFilter extends OncePerRequestFilter {
       FilterChain filterChain) throws ServletException, IOException {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if ((auth != null) && auth.isAuthenticated()) {
-      String userId = auth.getName(); // the GUID (sub)
+      String userId = auth.getName(); // the Keycloak GUID (sub)
       String username;
       String email;
 

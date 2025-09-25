@@ -171,6 +171,7 @@ public class CookieTokenService {
       @Nullable String value, @Nullable Instant expiry) {
     Assert.notNull(response, "Response must not be null");
     Assert.hasText(cookieName, "cookieName must not be null nor empty");
+    LOGGER.debug("setTokenCookie '{}'", cookieName);
     Cookie cookie = new Cookie(cookieName, value);
     cookie.setHttpOnly(true);
     cookie.setSecure(true);

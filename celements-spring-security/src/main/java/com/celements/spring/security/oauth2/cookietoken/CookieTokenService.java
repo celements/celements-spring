@@ -96,10 +96,7 @@ public class CookieTokenService {
 
   private boolean shouldRefresh(@NotNull OAuth2AuthorizedClient client) {
     var access = client.getAccessToken();
-    if ((access == null) || (access.getExpiresAt() == null)) {
-      return false;
-    }
-    if (client.getRefreshToken() == null) {
+    if ((access == null) || (access.getExpiresAt() == null) || (client.getRefreshToken() == null)) {
       return false;
     }
     return Instant.now().isAfter(access.getExpiresAt().minus(REFRESH_SKEW));
@@ -126,15 +123,16 @@ public class CookieTokenService {
     var auth = SecurityContextHolder.getContext().getAuthentication();
     LOGGER.debug(
         "refresh check: authPresent='{}', accessCookie='{}', refreshCookie='{}',"
-            + " existingClient='{}' expAt='{}'",
+            + " existingClient='{}' expAt='{}', shouldRefresh='{}'",
         (auth != null) && auth.isAuthenticated(),
         getAccessToken(req).isPresent(),
         getRefreshToken(req).isPresent(),
         oldClientOpt.isPresent(),
-        oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null));
+        oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null),
+        oldClientOpt.map(this::shouldRefresh).orElse(false));
     if ((auth != null) && auth.isAuthenticated() && oldClientOpt.isPresent()
         && shouldRefresh(oldClientOpt.get())) {
-      return oldClientOpt
+      var hasRefreshed = oldClientOpt
           .map(existingClient -> OAuth2AuthorizeRequest
               .withClientRegistrationId(identityService.getRegistrationId())
               .principal(auth)
@@ -145,18 +143,26 @@ public class CookieTokenService {
           .map(refreshOnlyAuthorizedClientManager::authorize)
           .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
               || hasRefreshTokenChanged(oldClientOpt, client));
+      LOGGER.debug("hasRefreshed: '{}'", hasRefreshed);
+      return hasRefreshed;
     }
     return Optional.empty();
   }
 
   boolean hasRefreshTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
       OAuth2AuthorizedClient client) {
-    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getRefreshToken);
+    var hasChanged = equalsTokenValues(oldClientOpt, client,
+        OAuth2AuthorizedClient::getRefreshToken);
+    LOGGER.debug("hasRefreshTokenChanged: '{}'", hasChanged);
+    return hasChanged;
   }
 
   boolean hasAccessTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
       OAuth2AuthorizedClient client) {
-    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getAccessToken);
+    var hasChanged = equalsTokenValues(oldClientOpt, client,
+        OAuth2AuthorizedClient::getAccessToken);
+    LOGGER.debug("hasAccessTokenChanged: '{}'", hasChanged);
+    return hasChanged;
   }
 
   @NotNull

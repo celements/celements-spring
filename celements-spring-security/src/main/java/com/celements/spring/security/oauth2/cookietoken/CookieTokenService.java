@@ -136,9 +136,8 @@ public class CookieTokenService {
         && shouldRefresh(oldClientOpt.get())) {
       var refreshedClientOpt = oldClientOpt
           .map(existingClient -> OAuth2AuthorizeRequest
-              .withClientRegistrationId(identityService.getRegistrationId())
+              .withAuthorizedClient(existingClient)
               .principal(auth)
-              .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
               .attribute(HttpServletRequest.class.getName(), req)
               .attribute(HttpServletResponse.class.getName(), resp)
               .build())

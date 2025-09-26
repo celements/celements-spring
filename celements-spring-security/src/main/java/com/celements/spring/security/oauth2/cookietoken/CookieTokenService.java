@@ -23,11 +23,12 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
+import org.springframework.security.oauth2.client.RefreshTokenOAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
@@ -106,9 +107,8 @@ public class CookieTokenService {
 
   OAuth2AuthorizedClientManager refreshOnlyWebManager(
       OAuth2AuthorizedClientRepository repo) {
-    var provider = OAuth2AuthorizedClientProviderBuilder.builder()
-        .refreshToken()
-        .build();
+    var provider = new RefreshTokenOAuth2AuthorizedClientProvider();
+    provider.setClockSkew(REFRESH_SKEW);
 
     var manager = new DefaultOAuth2AuthorizedClientManager(registrationRepo, repo);
     manager.setAuthorizedClientProvider(provider);
@@ -118,8 +118,8 @@ public class CookieTokenService {
   @NotNull
   public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req,
       @NotNull HttpServletResponse resp) {
-    Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
     var auth = SecurityContextHolder.getContext().getAuthentication();
+    Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req, auth);
     LOGGER.debug(
         "refresh check: authPresent='{}', accessCookie='{}', refreshCookie='{}',"
             + " existingClient='{}' expAt='{}', shouldRefresh='{}'",
@@ -134,7 +134,7 @@ public class CookieTokenService {
         defer(() -> oldClientOpt.map(OAuth2AuthorizedClient::getPrincipalName).orElse(null)));
     if ((auth != null) && auth.isAuthenticated() && oldClientOpt.isPresent()
         && shouldRefresh(oldClientOpt.get())) {
-      var hasRefreshed = oldClientOpt
+      var refreshedClientOpt = oldClientOpt
           .map(existingClient -> OAuth2AuthorizeRequest
               .withClientRegistrationId(identityService.getRegistrationId())
               .principal(auth)
@@ -143,10 +143,16 @@ public class CookieTokenService {
               .attribute(HttpServletResponse.class.getName(), resp)
               .build())
           .map(refreshOnlyAuthorizedClientManager::authorize)
+          .map(c -> {
+            LOGGER.debug("changed access='{}', changed refresh='{}'",
+                hasAccessTokenChanged(oldClientOpt, c),
+                hasRefreshTokenChanged(oldClientOpt, c));
+            return c;
+          })
           .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
               || hasRefreshTokenChanged(oldClientOpt, client));
-      LOGGER.debug("hasRefreshed: '{}'", hasRefreshed.isPresent());
-      return hasRefreshed;
+      LOGGER.debug("hasRefreshed: '{}'", refreshedClientOpt.isPresent());
+      return refreshedClientOpt;
     }
     return Optional.empty();
   }
@@ -169,7 +175,7 @@ public class CookieTokenService {
 
   @NotNull
   private Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(
-      @NotNull HttpServletRequest req) {
+      @NotNull HttpServletRequest req, Authentication auth) {
     Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
     Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
     if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
@@ -177,7 +183,7 @@ public class CookieTokenService {
       OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
       return Optional.of(new OAuth2AuthorizedClient(
           registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
-          accessJwtOpt.get().getSubject(),
+          auth.getName(),
           accessToken,
           refreshToken));
     }

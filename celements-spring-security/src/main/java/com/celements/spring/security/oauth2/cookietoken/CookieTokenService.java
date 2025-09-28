@@ -4,6 +4,8 @@ import static com.celements.logging.LogUtils.*;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -52,6 +54,10 @@ public class CookieTokenService {
   public static final String COOKIE_ACCESS_TOKEN = "access_token";
   public static final String COOKIE_REFRESH_TOKEN = "refresh_token";
 
+  private static final DateTimeFormatter PATTERN_FMT = DateTimeFormatter
+      .ofPattern("yyyy-MM-dd HH:mm:ss z")
+      .withZone(ZoneId.systemDefault());
+
   private final OAuth2AuthorizedClientManager refreshOnlyAuthorizedClientManager;
   private final WikiClientRegistrationRepository registrationRepo;
   private final IdentityService identityService;
@@ -90,8 +96,11 @@ public class CookieTokenService {
     setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(),
         accessToken.getExpiresAt());
     if (refreshToken != null) {
-      setTokenCookie(response, COOKIE_REFRESH_TOKEN, refreshToken.getTokenValue(),
-          refreshToken.getExpiresAt());
+      Instant issuedAt = refreshToken.getIssuedAt();
+      String value = (issuedAt != null)
+          ? refreshToken.getTokenValue() + ":" + issuedAt.toEpochMilli()
+          : refreshToken.getTokenValue();
+      setTokenCookie(response, COOKIE_REFRESH_TOKEN, value, refreshToken.getExpiresAt());
     }
   }
 
@@ -199,7 +208,26 @@ public class CookieTokenService {
     return Optional.ofNullable(WebUtils.getCookie(req, COOKIE_REFRESH_TOKEN))
         .map(Cookie::getValue)
         .filter(Predicate.not(Strings::isNullOrEmpty))
-        .map(val -> new OAuth2RefreshToken(val, Instant.now()));
+        .map(val -> {
+          String[] parts = val.split(":", 2);
+          String tokenValue = parts[0];
+          final Instant issuedAt = convertIssuedAt(parts);
+          LOGGER.info("getRefreshTokenFromCookie issuedAt='{}'",
+              defer(() -> (issuedAt == null) ? "n/a" : PATTERN_FMT.format(issuedAt)));
+          return new OAuth2RefreshToken(tokenValue, issuedAt);
+        });
+  }
+
+  private Instant convertIssuedAt(String[] parts) {
+    Instant issuedAt = null;
+    if (parts.length == 2) {
+      try {
+        issuedAt = Instant.ofEpochMilli(Long.parseLong(parts[1]));
+      } catch (NumberFormatException e) {
+        issuedAt = null;
+      }
+    }
+    return issuedAt;
   }
 
   /**

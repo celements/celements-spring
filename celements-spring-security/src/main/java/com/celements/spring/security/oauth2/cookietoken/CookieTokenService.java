@@ -93,8 +93,9 @@ public class CookieTokenService {
       @NotNull OAuth2AuthorizedClient client) {
     OAuth2AccessToken accessToken = client.getAccessToken();
     OAuth2RefreshToken refreshToken = client.getRefreshToken();
-    setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(),
-        accessToken.getExpiresAt());
+    Instant expiresAt = accessToken.getExpiresAt();
+    LOGGER.debug("storeTokens for '{}' expAt='{}'", client.getPrincipalName(), expiresAt);
+    setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(), expiresAt);
     if (refreshToken != null) {
       Instant issuedAt = refreshToken.getIssuedAt();
       String value = (issuedAt != null)
@@ -107,78 +108,63 @@ public class CookieTokenService {
   private static final Duration REFRESH_SKEW = Duration.ofMinutes(2);
 
   private boolean shouldRefresh(@NotNull OAuth2AuthorizedClient client) {
-    var access = client.getAccessToken();
-    if ((access == null) || (access.getExpiresAt() == null) || (client.getRefreshToken() == null)) {
-      return false;
-    }
-    return Instant.now().isAfter(access.getExpiresAt().minus(REFRESH_SKEW));
+    return Optional.ofNullable(client.getAccessToken())
+        .filter(exp -> client.getRefreshToken() != null)
+        .map(OAuth2AccessToken::getExpiresAt)
+        .map(exp -> Instant.now().isAfter(exp.minus(REFRESH_SKEW)))
+        .orElse(false);
   }
 
-  OAuth2AuthorizedClientManager refreshOnlyWebManager(
+  private OAuth2AuthorizedClientManager refreshOnlyWebManager(
       OAuth2AuthorizedClientRepository repo) {
+    var manager = new DefaultOAuth2AuthorizedClientManager(registrationRepo, repo);
+    manager.setAuthorizedClientProvider(getRefreshTokenAuthorizedClientProvider());
+    return manager;
+  }
+
+  private RefreshTokenOAuth2AuthorizedClientProvider getRefreshTokenAuthorizedClientProvider() {
     var provider = new RefreshTokenOAuth2AuthorizedClientProvider();
     provider.setClockSkew(REFRESH_SKEW);
-
-    var manager = new DefaultOAuth2AuthorizedClientManager(registrationRepo, repo);
-    manager.setAuthorizedClientProvider(provider);
-    return manager;
+    return provider;
   }
 
   @NotNull
   public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req,
       @NotNull HttpServletResponse resp) {
     var auth = SecurityContextHolder.getContext().getAuthentication();
+    if ((auth == null) || !auth.isAuthenticated()) {
+      LOGGER.debug("skip refresh check because no authentication object or not authenticated: "
+          + "authPresent='{}', authenticated='{}'", (auth != null),
+          (auth != null) && auth.isAuthenticated());
+      return Optional.empty();
+    }
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req, auth);
-    LOGGER.debug(
-        "refresh check: authPresent='{}', accessCookie='{}', refreshCookie='{}',"
-            + " existingClient='{}' expAt='{}', shouldRefresh='{}'",
-        (auth != null) && auth.isAuthenticated(),
-        getAccessToken(req).isPresent(),
-        getRefreshToken(req).isPresent(),
-        oldClientOpt.isPresent(),
+    LOGGER.debug("refresh check: accessCookie='{}', refreshCookie='{}', existingClient='{}'"
+        + " expAt='{}', shouldRefresh='{}'", getAccessToken(req).isPresent(),
+        getRefreshToken(req).isPresent(), oldClientOpt.isPresent(),
         oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null),
         oldClientOpt.map(this::shouldRefresh).orElse(false));
-    LOGGER.debug("principal authName='{}' clientName='{}'",
-        auth != null ? auth.getName() : null,
-        defer(() -> oldClientOpt.map(OAuth2AuthorizedClient::getPrincipalName).orElse(null)));
-    if ((auth != null) && auth.isAuthenticated() && oldClientOpt.isPresent()
-        && shouldRefresh(oldClientOpt.get())) {
-      var refreshedClientOpt = oldClientOpt
-          .map(existingClient -> OAuth2AuthorizeRequest
-              .withAuthorizedClient(existingClient)
-              .principal(auth)
-              .attribute(HttpServletRequest.class.getName(), req)
-              .attribute(HttpServletResponse.class.getName(), resp)
-              .build())
-          .map(refreshOnlyAuthorizedClientManager::authorize)
-          .map(c -> {
-            LOGGER.debug("changed access='{}', changed refresh='{}'",
-                hasAccessTokenChanged(oldClientOpt, c),
-                hasRefreshTokenChanged(oldClientOpt, c));
-            return c;
-          })
-          .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
-              || hasRefreshTokenChanged(oldClientOpt, client));
-      LOGGER.debug("hasRefreshed: '{}'", refreshedClientOpt.isPresent());
-      return refreshedClientOpt;
-    }
-    return Optional.empty();
+    return oldClientOpt
+        .filter(this::shouldRefresh)
+        .map(existingClient -> OAuth2AuthorizeRequest
+            .withAuthorizedClient(existingClient)
+            .principal(auth)
+            .attribute(HttpServletRequest.class.getName(), req)
+            .attribute(HttpServletResponse.class.getName(), resp)
+            .build())
+        .map(refreshOnlyAuthorizedClientManager::authorize)
+        .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
+            || hasRefreshTokenChanged(oldClientOpt, client));
   }
 
   boolean hasRefreshTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
       OAuth2AuthorizedClient client) {
-    var hasChanged = equalsTokenValues(oldClientOpt, client,
-        OAuth2AuthorizedClient::getRefreshToken);
-    LOGGER.debug("hasRefreshTokenChanged: '{}'", hasChanged);
-    return hasChanged;
+    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getRefreshToken);
   }
 
   boolean hasAccessTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
       OAuth2AuthorizedClient client) {
-    var hasChanged = equalsTokenValues(oldClientOpt, client,
-        OAuth2AuthorizedClient::getAccessToken);
-    LOGGER.debug("hasAccessTokenChanged: '{}'", hasChanged);
-    return hasChanged;
+    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getAccessToken);
   }
 
   @NotNull

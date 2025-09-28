@@ -64,12 +64,12 @@ public class CookieTokenService {
 
   @Inject
   public CookieTokenService(
-      OAuth2AuthorizedClientRepository repo,
+      OAuth2AuthorizedClientRepository authClientRepo,
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService) {
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
-    this.refreshOnlyAuthorizedClientManager = refreshOnlyWebManager(repo);
+    this.refreshOnlyAuthorizedClientManager = refreshOnlyWebManager(authClientRepo);
   }
 
   @NotNull
@@ -244,7 +244,7 @@ public class CookieTokenService {
       @Nullable String value, @Nullable Instant expiry) {
     Assert.notNull(response, "Response must not be null");
     Assert.hasText(cookieName, "cookieName must not be null nor empty");
-    LOGGER.debug("setTokenCookie '{}'", cookieName);
+    LOGGER.trace("setTokenCookie '{}'", cookieName);
     Cookie cookie = new Cookie(cookieName, value);
     cookie.setHttpOnly(true);
     cookie.setSecure(true);

@@ -17,8 +17,8 @@ public class CompositeBearerTokenResolver implements BearerTokenResolver {
   private final BearerTokenResolver headerResolver = new DefaultBearerTokenResolver();
   private final BearerTokenResolver cookieResolver;
 
-  public CompositeBearerTokenResolver(BearerTokenResolver cookie) {
-    this.cookieResolver = cookie;
+  public CompositeBearerTokenResolver(BearerTokenResolver cookieResolver) {
+    this.cookieResolver = cookieResolver;
   }
 
   @Override

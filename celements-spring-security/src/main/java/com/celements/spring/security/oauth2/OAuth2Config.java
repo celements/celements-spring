@@ -89,21 +89,18 @@ public class OAuth2Config {
   @Bean
   @NotNull
   public LogoutHandler revokeRefreshTokenHandler(CookieTokenService tokenService) {
-    return (request, response, authentication) -> {
-      var refreshTokenOpt = tokenService.getRefreshToken(request);
-      LOGGER.debug("revokeRefreshTokenHandler: has token '{}'", refreshTokenOpt.isPresent());
-      refreshTokenOpt.ifPresent(refreshToken -> {
-        try {
-          var headers = new HttpHeaders();
-          headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-          new RestTemplate().postForEntity(identityService.getRevokeUrl(),
-              new HttpEntity<>(createRevokeRefreshTokenForm(refreshToken), headers),
-              Void.class);
-        } catch (Exception exp) {
-          LOGGER.info("failed to revoke refresh-token on logout", exp);
-        }
-      });
-    };
+    return (request, response, authentication) -> tokenService.getRefreshToken(request)
+        .ifPresentOrElse(refreshToken -> {
+          try {
+            var headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            new RestTemplate().postForEntity(identityService.getRevokeUrl(),
+                new HttpEntity<>(createRevokeRefreshTokenForm(refreshToken), headers),
+                Void.class);
+          } catch (Exception exp) {
+            LOGGER.info("failed to revoke refresh-token on logout", exp);
+          }
+        }, () -> LOGGER.debug("revokeRefreshTokenHandler: no refresh token found"));
   }
 
   private LinkedMultiValueMap<String, String> createRevokeRefreshTokenForm(

@@ -1,6 +1,11 @@
 package com.celements.spring.security.oauth2.cookietoken;
 
+import static com.celements.logging.LogUtils.*;
+
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -20,9 +25,14 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.RefreshTokenOAuth2AuthorizedClientProvider;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
@@ -44,28 +54,22 @@ public class CookieTokenService {
   public static final String COOKIE_ACCESS_TOKEN = "access_token";
   public static final String COOKIE_REFRESH_TOKEN = "refresh_token";
 
+  private static final DateTimeFormatter PATTERN_FMT = DateTimeFormatter
+      .ofPattern("yyyy-MM-dd HH:mm:ss z")
+      .withZone(ZoneId.systemDefault());
+
+  private final OAuth2AuthorizedClientManager refreshOnlyAuthorizedClientManager;
   private final WikiClientRegistrationRepository registrationRepo;
   private final IdentityService identityService;
-  private final OAuth2AuthorizedClientManager authorizedClientManager;
 
   @Inject
   public CookieTokenService(
+      OAuth2AuthorizedClientRepository authClientRepo,
       WikiClientRegistrationRepository registrationRepo,
-      IdentityService identityService,
-      OAuth2AuthorizedClientManager authorizedClientManager) {
+      IdentityService identityService) {
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
-    this.authorizedClientManager = authorizedClientManager;
-  }
-
-  @NotNull
-  public Optional<String> getAccessToken(@NotNull HttpServletRequest req) {
-    return getTokenValue(req, CookieTokenService.COOKIE_ACCESS_TOKEN);
-  }
-
-  @NotNull
-  public Optional<String> getRefreshToken(@NotNull HttpServletRequest req) {
-    return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN);
+    this.refreshOnlyAuthorizedClientManager = refreshOnlyWebManager(authClientRepo);
   }
 
   private Optional<String> getTokenValue(@NotNull HttpServletRequest req,
@@ -79,26 +83,66 @@ public class CookieTokenService {
       @NotNull OAuth2AuthorizedClient client) {
     OAuth2AccessToken accessToken = client.getAccessToken();
     OAuth2RefreshToken refreshToken = client.getRefreshToken();
-    // Set as HttpOnly cookies
-    setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(),
-        accessToken.getExpiresAt());
+    Instant expiresAt = accessToken.getExpiresAt();
+    LOGGER.debug("storeTokens for '{}' expAt='{}'", client.getPrincipalName(), expiresAt);
+    setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(), expiresAt);
     if (refreshToken != null) {
-      setTokenCookie(response, COOKIE_REFRESH_TOKEN, refreshToken.getTokenValue(),
-          refreshToken.getExpiresAt());
+      Instant issuedAt = refreshToken.getIssuedAt();
+      String value = (issuedAt != null)
+          ? refreshToken.getTokenValue() + ":" + issuedAt.toEpochMilli()
+          : refreshToken.getTokenValue();
+      setTokenCookie(response, COOKIE_REFRESH_TOKEN, value, refreshToken.getExpiresAt());
     }
   }
 
+  private static final Duration REFRESH_SKEW = Duration.ofMinutes(2);
+
+  private boolean shouldRefresh(@NotNull OAuth2AuthorizedClient client) {
+    return Optional.ofNullable(client.getAccessToken())
+        .filter(exp -> client.getRefreshToken() != null)
+        .map(OAuth2AccessToken::getExpiresAt)
+        .map(exp -> Instant.now().isAfter(exp.minus(REFRESH_SKEW)))
+        .orElse(false);
+  }
+
+  private OAuth2AuthorizedClientManager refreshOnlyWebManager(
+      OAuth2AuthorizedClientRepository repo) {
+    var manager = new DefaultOAuth2AuthorizedClientManager(registrationRepo, repo);
+    manager.setAuthorizedClientProvider(getRefreshTokenAuthorizedClientProvider());
+    return manager;
+  }
+
+  private RefreshTokenOAuth2AuthorizedClientProvider getRefreshTokenAuthorizedClientProvider() {
+    var provider = new RefreshTokenOAuth2AuthorizedClientProvider();
+    provider.setClockSkew(REFRESH_SKEW);
+    return provider;
+  }
+
   @NotNull
-  public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req) {
-    Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req);
+  public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req,
+      @NotNull HttpServletResponse resp) {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    if ((auth == null) || !auth.isAuthenticated()) {
+      LOGGER.debug("skip refresh check because no authentication object or not authenticated: "
+          + "authPresent='{}', authenticated='{}'", (auth != null),
+          (auth != null) && auth.isAuthenticated());
+      return Optional.empty();
+    }
+    Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req, auth);
+    LOGGER.debug("refresh check: accessCookie='{}', refreshCookie='{}', existingClient='{}'"
+        + " expAt='{}', shouldRefresh='{}'", getAccessTokenFromCookie(req).isPresent(),
+        getRefreshToken(req).isPresent(), oldClientOpt.isPresent(),
+        oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null),
+        oldClientOpt.map(this::shouldRefresh).orElse(false));
     return oldClientOpt
+        .filter(this::shouldRefresh)
         .map(existingClient -> OAuth2AuthorizeRequest
-            .withClientRegistrationId(identityService.getRegistrationId())
-            .principal(existingClient.getPrincipalName())
-            // here's where you hand Spring your pre‐built client:
-            .attribute(OAuth2AuthorizedClient.class.getName(), existingClient)
+            .withAuthorizedClient(existingClient)
+            .principal(auth)
+            .attribute(HttpServletRequest.class.getName(), req)
+            .attribute(HttpServletResponse.class.getName(), resp)
             .build())
-        .map(authorizedClientManager::authorize)
+        .map(refreshOnlyAuthorizedClientManager::authorize)
         .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
             || hasRefreshTokenChanged(oldClientOpt, client));
   }
@@ -115,15 +159,15 @@ public class CookieTokenService {
 
   @NotNull
   private Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(
-      @NotNull HttpServletRequest req) {
+      @NotNull HttpServletRequest req, Authentication auth) {
     Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
-    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
+    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshToken(req);
     if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
       OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
       OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
       return Optional.of(new OAuth2AuthorizedClient(
           registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
-          accessJwtOpt.get().getSubject(),
+          auth.getName(),
           accessToken,
           refreshToken));
     }
@@ -136,11 +180,28 @@ public class CookieTokenService {
    * @return the Refresh Token or optional.empty if none found or invalid
    */
   @NotNull
-  private Optional<OAuth2RefreshToken> getRefreshTokenFromCookie(@NotNull HttpServletRequest req) {
-    return getJwtFromCookie(req, COOKIE_REFRESH_TOKEN)
-        .map(refreshToken -> new OAuth2RefreshToken(
-            refreshToken.getTokenValue(),
-            refreshToken.getIssuedAt()));
+  public Optional<OAuth2RefreshToken> getRefreshToken(@NotNull HttpServletRequest req) {
+    return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN)
+        .map(val -> {
+          String[] parts = val.split(":", 2);
+          String tokenValue = parts[0];
+          final Instant issuedAt = convertIssuedAt(parts);
+          LOGGER.info("getRefreshToken issuedAt='{}'",
+              defer(() -> (issuedAt == null) ? "n/a" : PATTERN_FMT.format(issuedAt)));
+          return new OAuth2RefreshToken(tokenValue, issuedAt);
+        });
+  }
+
+  private Instant convertIssuedAt(String[] parts) {
+    Instant issuedAt = null;
+    if (parts.length == 2) {
+      try {
+        issuedAt = Instant.ofEpochMilli(Long.parseLong(parts[1]));
+      } catch (NumberFormatException e) {
+        issuedAt = null;
+      }
+    }
+    return issuedAt;
   }
 
   /**
@@ -171,6 +232,7 @@ public class CookieTokenService {
       @Nullable String value, @Nullable Instant expiry) {
     Assert.notNull(response, "Response must not be null");
     Assert.hasText(cookieName, "cookieName must not be null nor empty");
+    LOGGER.trace("setTokenCookie '{}'", cookieName);
     Cookie cookie = new Cookie(cookieName, value);
     cookie.setHttpOnly(true);
     cookie.setSecure(true);
@@ -188,10 +250,14 @@ public class CookieTokenService {
     Assert.notNull(req, "Request must not be null");
     Assert.hasText(cookieName, "cookieName must not be null nor empty");
     try {
-      return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
-          .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));
+      return getTokenValue(req, cookieName)
+          .map(val -> identityService.getJwtDecoder().decode(val));
     } catch (JwtException exp) {
-      LOGGER.debug("decoding the jwt cookie '{}' value failed.", cookieName, exp);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("decoding the jwt cookie '{}' value failed.", cookieName, exp);
+      } else {
+        LOGGER.info("decoding the jwt cookie '{}' value failed.", cookieName);
+      }
     }
     return Optional.empty();
   }

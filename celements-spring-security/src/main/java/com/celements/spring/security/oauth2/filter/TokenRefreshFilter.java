@@ -20,10 +20,9 @@ public class TokenRefreshFilter extends OncePerRequestFilter {
   }
 
   @Override
-  protected void doFilterInternal(HttpServletRequest req,
-      HttpServletResponse resp, FilterChain chain)
-      throws ServletException, IOException {
-    tokenService.refreshTokens(req)
+  protected void doFilterInternal(HttpServletRequest req, HttpServletResponse resp,
+      FilterChain chain) throws ServletException, IOException {
+    tokenService.refreshTokens(req, resp)
         .ifPresent(refreshedClient -> tokenService.storeTokens(resp, refreshedClient));
     chain.doFilter(req, resp);
   }

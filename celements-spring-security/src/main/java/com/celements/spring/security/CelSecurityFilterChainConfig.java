@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.server.resource.web.access.BearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
@@ -31,6 +32,7 @@ import org.xwiki.context.Execution;
 
 import com.celements.auth.user.UserService;
 import com.celements.spring.security.oauth2.IdentityService;
+import com.celements.spring.security.oauth2.cookietoken.CompositeBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 import com.celements.spring.security.oauth2.filter.ExecutionContextAuthenticationFilter;
@@ -49,6 +51,7 @@ public class CelSecurityFilterChainConfig {
   private final IdentityService identityService;
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
+  private final CookieTokenService tokenService;
   private final Execution execution;
 
   @Inject
@@ -56,10 +59,12 @@ public class CelSecurityFilterChainConfig {
       IdentityService identityService,
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
+      CookieTokenService tokenService,
       Execution execution) {
     this.identityService = identityService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
+    this.tokenService = tokenService;
     this.execution = execution;
   }
 
@@ -70,8 +75,7 @@ public class CelSecurityFilterChainConfig {
       LogoutHandler revokeRefreshTokenHandler,
       LogoutSuccessHandler oicdLogoutSuccessHandler,
       OAuth2AuthorizedClientService authorizedClientService,
-      TenantOicdActiveRequestMatcher oAuthTenantMatcher,
-      CookieTokenService tokenService) throws Exception {
+      TenantOicdActiveRequestMatcher oAuthTenantMatcher) throws Exception {
     LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm), defer(identityService::getLoginUrl));
     return http
@@ -81,13 +85,18 @@ public class CelSecurityFilterChainConfig {
             oAuthTenantMatcher))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+        .securityContext(sc -> sc
+            .securityContextRepository(new RequestAttributeSecurityContextRepository())
+            .requireExplicitSave(true))
         .oauth2Login(oauth2 -> oauth2.loginPage("/oauth2/authorization/{registrationId}")
             .successHandler(new CelAuthenticationSuccessHandler(authorizedClientService,
                 tokenService)))
         .oauth2ResourceServer(rs -> rs
-            .bearerTokenResolver(new CookieBearerTokenResolver(tokenService))
+            .bearerTokenResolver(
+                new CompositeBearerTokenResolver(
+                    new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
-        .addFilterBefore(
+        .addFilterAfter(
             new TokenRefreshFilter(tokenService),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
@@ -122,7 +131,16 @@ public class CelSecurityFilterChainConfig {
             .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .anyRequest().permitAll())
         .oauth2ResourceServer(oauth2 -> oauth2
+            .bearerTokenResolver(
+                new CompositeBearerTokenResolver(
+                    new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
+        .addFilterBefore(
+            new TokenRefreshFilter(tokenService),
+            BearerTokenAuthenticationFilter.class)
+        .addFilterAfter(
+            new ExecutionContextAuthenticationFilter(userService, execution),
+            BearerTokenAuthenticationFilter.class)
         .exceptionHandling(exceptions -> exceptions
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
             .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))

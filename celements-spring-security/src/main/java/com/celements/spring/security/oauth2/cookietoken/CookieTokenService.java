@@ -72,16 +72,6 @@ public class CookieTokenService {
     this.refreshOnlyAuthorizedClientManager = refreshOnlyWebManager(authClientRepo);
   }
 
-  @NotNull
-  public Optional<String> getAccessToken(@NotNull HttpServletRequest req) {
-    return getTokenValue(req, CookieTokenService.COOKIE_ACCESS_TOKEN);
-  }
-
-  @NotNull
-  public Optional<String> getRefreshToken(@NotNull HttpServletRequest req) {
-    return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN);
-  }
-
   private Optional<String> getTokenValue(@NotNull HttpServletRequest req,
       @NotEmpty String cookieName) {
     return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
@@ -140,7 +130,7 @@ public class CookieTokenService {
     }
     Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req, auth);
     LOGGER.debug("refresh check: accessCookie='{}', refreshCookie='{}', existingClient='{}'"
-        + " expAt='{}', shouldRefresh='{}'", getAccessToken(req).isPresent(),
+        + " expAt='{}', shouldRefresh='{}'", getAccessTokenFromCookie(req).isPresent(),
         getRefreshToken(req).isPresent(), oldClientOpt.isPresent(),
         oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null),
         oldClientOpt.map(this::shouldRefresh).orElse(false));
@@ -171,7 +161,7 @@ public class CookieTokenService {
   private Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(
       @NotNull HttpServletRequest req, Authentication auth) {
     Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
-    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshTokenFromCookie(req);
+    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshToken(req);
     if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
       OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
       OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
@@ -190,15 +180,13 @@ public class CookieTokenService {
    * @return the Refresh Token or optional.empty if none found or invalid
    */
   @NotNull
-  private Optional<OAuth2RefreshToken> getRefreshTokenFromCookie(@NotNull HttpServletRequest req) {
-    return Optional.ofNullable(WebUtils.getCookie(req, COOKIE_REFRESH_TOKEN))
-        .map(Cookie::getValue)
-        .filter(Predicate.not(Strings::isNullOrEmpty))
+  public Optional<OAuth2RefreshToken> getRefreshToken(@NotNull HttpServletRequest req) {
+    return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN)
         .map(val -> {
           String[] parts = val.split(":", 2);
           String tokenValue = parts[0];
           final Instant issuedAt = convertIssuedAt(parts);
-          LOGGER.info("getRefreshTokenFromCookie issuedAt='{}'",
+          LOGGER.info("getRefreshToken issuedAt='{}'",
               defer(() -> (issuedAt == null) ? "n/a" : PATTERN_FMT.format(issuedAt)));
           return new OAuth2RefreshToken(tokenValue, issuedAt);
         });
@@ -262,8 +250,8 @@ public class CookieTokenService {
     Assert.notNull(req, "Request must not be null");
     Assert.hasText(cookieName, "cookieName must not be null nor empty");
     try {
-      return Optional.ofNullable(WebUtils.getCookie(req, cookieName))
-          .map(cookie -> identityService.getJwtDecoder().decode(cookie.getValue()));
+      return getTokenValue(req, cookieName)
+          .map(val -> identityService.getJwtDecoder().decode(val));
     } catch (JwtException exp) {
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("decoding the jwt cookie '{}' value failed.", cookieName, exp);

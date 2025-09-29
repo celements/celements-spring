@@ -95,7 +95,8 @@ public class OAuth2Config {
             var headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             new RestTemplate().postForEntity(identityService.getRevokeUrl(),
-                new HttpEntity<>(createRevokeRefreshTokenForm(refreshToken), headers),
+                new HttpEntity<>(createRevokeRefreshTokenForm(refreshToken.getTokenValue()),
+                    headers),
                 Void.class);
           } catch (Exception exp) {
             LOGGER.info("failed to revoke refresh-token on logout", exp);

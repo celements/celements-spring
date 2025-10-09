@@ -39,7 +39,7 @@ public class WikiClientRegistrationRepository implements ClientRegistrationRepos
     }
 
     Map<String, Object> providerMetadata = new HashMap<>();
-    providerMetadata.put("end_session_endpoint", identityService.getOAuth2BaseUrl() + "logout");
+    providerMetadata.put("end_session_endpoint", identityService.getLogoutUrl());
 
     return ClientRegistration.withRegistrationId(registrationId)
         .clientId(identityService.getLoginClientId())

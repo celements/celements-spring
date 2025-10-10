@@ -37,10 +37,6 @@ public class WikiClientRegistrationRepository implements ClientRegistrationRepos
     if (!isValidRegistrationId(registrationId)) {
       return null;
     }
-
-    Map<String, Object> providerMetadata = new HashMap<>();
-    providerMetadata.put("end_session_endpoint", identityService.getLogoutUrl());
-
     return ClientRegistration.withRegistrationId(registrationId)
         .clientId(identityService.getLoginClientId())
         .clientSecret(identityService.getLoginClientSecret())
@@ -53,7 +49,8 @@ public class WikiClientRegistrationRepository implements ClientRegistrationRepos
         .userNameAttributeName(IdTokenClaimNames.SUB)
         .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
         .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-        .providerConfigurationMetadata(providerMetadata)
+        .providerConfigurationMetadata(Map.of("end_session_endpoint",
+            identityService.getLogoutUrl()))
         .build();
   }
 

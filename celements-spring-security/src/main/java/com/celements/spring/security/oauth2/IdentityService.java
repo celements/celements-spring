@@ -42,6 +42,9 @@ public interface IdentityService {
   String getLoginUrl();
 
   @NotEmpty
+  String getLogoutUrl();
+
+  @NotEmpty
   String getRegistrationId();
 
   @NotEmpty

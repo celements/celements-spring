@@ -20,9 +20,7 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
   @Override
   public String resolve(HttpServletRequest req) {
     try {
-      return tokenService.getAccessTokenFromCookie(req)
-          .map(t -> t.getTokenValue())
-          .orElse(null);
+      return tokenService.getAccessToken(req).orElse(null);
     } catch (OAuth2AuthenticationException exp) {
       LOGGER.info("No valid access token found", exp);
     }

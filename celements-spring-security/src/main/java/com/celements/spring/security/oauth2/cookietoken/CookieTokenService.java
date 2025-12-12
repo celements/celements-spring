@@ -79,13 +79,18 @@ public class CookieTokenService {
         .filter(Predicate.not(Strings::isNullOrEmpty));
   }
 
+  public void storeAccessJwtCookie(@NotNull HttpServletResponse response,
+      @NotNull String tokenValue, @Nullable Instant expiresAt) {
+    setTokenCookie(response, COOKIE_ACCESS_TOKEN, tokenValue, expiresAt);
+  }
+
   public void storeTokens(@NotNull HttpServletResponse response,
       @NotNull OAuth2AuthorizedClient client) {
     OAuth2AccessToken accessToken = client.getAccessToken();
     OAuth2RefreshToken refreshToken = client.getRefreshToken();
     Instant expiresAt = accessToken.getExpiresAt();
     LOGGER.debug("storeTokens for '{}' expAt='{}'", client.getPrincipalName(), expiresAt);
-    setTokenCookie(response, COOKIE_ACCESS_TOKEN, accessToken.getTokenValue(), expiresAt);
+    storeAccessJwtCookie(response, accessToken.getTokenValue(), expiresAt);
     if (refreshToken != null) {
       Instant issuedAt = refreshToken.getIssuedAt();
       String value = (issuedAt != null)
@@ -202,6 +207,12 @@ public class CookieTokenService {
       }
     }
     return issuedAt;
+  }
+
+  @NotNull
+  public Optional<String> getAccessToken(@NotNull HttpServletRequest req) {
+    return getAccessTokenFromCookie(req)
+        .map(t -> t.getTokenValue());
   }
 
   /**

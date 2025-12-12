@@ -36,6 +36,7 @@ import com.celements.spring.security.oauth2.cookietoken.CompositeBearerTokenReso
 import com.celements.spring.security.oauth2.cookietoken.CookieBearerTokenResolver;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 import com.celements.spring.security.oauth2.filter.ExecutionContextAuthenticationFilter;
+import com.celements.spring.security.oauth2.filter.HeaderToCookieAccessTokenFilter;
 import com.celements.spring.security.oauth2.filter.TokenRefreshFilter;
 import com.celements.spring.security.oauth2.wiki.CelAuthenticationSuccessHandler;
 import com.celements.spring.security.oauth2.wiki.TenantOicdActiveRequestMatcher;
@@ -102,6 +103,9 @@ public class CelSecurityFilterChainConfig {
         .addFilterAfter(
             new ExecutionContextAuthenticationFilter(userService, execution),
             BearerTokenAuthenticationFilter.class)
+        .addFilterAfter(
+            new HeaderToCookieAccessTokenFilter(tokenService),
+            BearerTokenAuthenticationFilter.class)
         .logout(l -> l
             .logoutUrl("/logout")
             .addLogoutHandler(revokeRefreshTokenHandler)
@@ -140,6 +144,9 @@ public class CelSecurityFilterChainConfig {
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new ExecutionContextAuthenticationFilter(userService, execution),
+            BearerTokenAuthenticationFilter.class)
+        .addFilterAfter(
+            new HeaderToCookieAccessTokenFilter(tokenService),
             BearerTokenAuthenticationFilter.class)
         .exceptionHandling(exceptions -> exceptions
             .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())

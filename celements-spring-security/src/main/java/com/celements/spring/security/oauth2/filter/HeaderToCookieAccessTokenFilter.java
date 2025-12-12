@@ -36,7 +36,8 @@ public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
     // - cookie is missing or out-of-sync with the header.
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     Optional<String> bearer = getHeaderBearer(req);
-    if ((auth instanceof JwtAuthenticationToken) && auth.isAuthenticated() && bearer.isPresent()) {
+    boolean isAuthenticated = (auth instanceof JwtAuthenticationToken) && auth.isAuthenticated();
+    if (isAuthenticated && bearer.isPresent()) {
       String cookieVal = tokenService.getAccessToken(req).orElse(null);
       if (!bearer.get().equals(cookieVal)) {
         // We already trust it (validated by BearerTokenAuthenticationFilter). We just need expiry.
@@ -47,8 +48,8 @@ public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
         LOGGER.debug("skip setting identical cookie");
       }
     } else {
-      LOGGER.debug("no cookie set for header auth={}, bearer-present={}",
-          auth.isAuthenticated(), bearer.isPresent());
+      LOGGER.debug("no cookie set for header auth={}, bearer-present={}", isAuthenticated,
+          bearer.isPresent());
     }
     chain.doFilter(req, resp);
   }

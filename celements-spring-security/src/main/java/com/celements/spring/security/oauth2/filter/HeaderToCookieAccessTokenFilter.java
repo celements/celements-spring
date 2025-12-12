@@ -8,6 +8,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -16,6 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 
 public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CookieTokenService.class);
 
   private final CookieTokenService tokenService;
 
@@ -37,8 +41,14 @@ public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
       if (!bearer.get().equals(cookieVal)) {
         // We already trust it (validated by BearerTokenAuthenticationFilter). We just need expiry.
         var jwt = ((JwtAuthenticationToken) auth).getToken();
+        LOGGER.info("setting auth-cookie for auth-header exp={}", jwt.getExpiresAt());
         tokenService.storeAccessJwtCookie(resp, jwt.getTokenValue(), jwt.getExpiresAt());
+      } else {
+        LOGGER.debug("skip setting identical cookie");
       }
+    } else {
+      LOGGER.debug("no cookie set for header auth={}, bearer-present={}",
+          auth.isAuthenticated(), bearer.isPresent());
     }
     chain.doFilter(req, resp);
   }

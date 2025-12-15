@@ -19,7 +19,8 @@ import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 
 public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HeaderToCookieAccessTokenFilter.class);
+  private static final Logger LOGGER = LoggerFactory
+      .getLogger(HeaderToCookieAccessTokenFilter.class);
 
   private final CookieTokenService tokenService;
 
@@ -30,27 +31,7 @@ public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
   @Override
   protected void doFilterInternal(HttpServletRequest req, HttpServletResponse resp,
       FilterChain chain) throws ServletException, IOException {
-    // Only set when:
-    // - request had a validated bearer (auth is authenticated),
-    // - header was used (Authorization present),
-    // - cookie is missing or out-of-sync with the header.
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    Optional<String> bearer = getHeaderBearer(req);
-    boolean isAuthenticated = (auth instanceof JwtAuthenticationToken) && auth.isAuthenticated();
-    if (isAuthenticated && bearer.isPresent()) {
-      String cookieVal = tokenService.getAccessToken(req).orElse(null);
-      if (!bearer.get().equals(cookieVal)) {
-        // We already trust it (validated by BearerTokenAuthenticationFilter). We just need expiry.
-        var jwt = ((JwtAuthenticationToken) auth).getToken();
-        LOGGER.info("setting auth-cookie for auth-header exp={}", jwt.getExpiresAt());
-        tokenService.storeAccessJwtCookie(resp, jwt.getTokenValue(), jwt.getExpiresAt());
-      } else {
-        LOGGER.debug("skip setting identical cookie");
-      }
-    } else {
-      LOGGER.debug("no cookie set for header auth={}, bearer-present={}", isAuthenticated,
-          bearer.isPresent());
-    }
+    syncAccessTokenCookie(req, resp);
     chain.doFilter(req, resp);
   }
 
@@ -59,4 +40,33 @@ public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
         .filter(header -> header.startsWith("Bearer "))
         .map(header -> header.substring(7));
   }
+
+  /**
+   * Only set cookie when:
+   * - request had a validated bearer (auth is authenticated),
+   * - header was used (Authorization present),
+   * - cookie is missing or out-of-sync with the header.
+   *
+   * @param req
+   * @param resp
+   */
+  private void syncAccessTokenCookie(HttpServletRequest req, HttpServletResponse resp) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    boolean isAuthenticated = (auth instanceof JwtAuthenticationToken) && auth.isAuthenticated();
+    Optional<String> bearerOpt = getHeaderBearer(req);
+    if (!isAuthenticated || bearerOpt.isEmpty()) {
+      LOGGER.debug("no cookie set for header auth={}, bearer-present={}", isAuthenticated,
+          bearerOpt.isPresent());
+      return;
+    }
+    if (!bearerOpt.get().equals(tokenService.getAccessToken(req).orElse(null))) {
+      // We already trust it (validated by BearerTokenAuthenticationFilter). We just need expiry.
+      var jwt = ((JwtAuthenticationToken) auth).getToken();
+      LOGGER.info("setting auth-cookie for auth-header exp={}", jwt.getExpiresAt());
+      tokenService.storeAccessJwtCookie(resp, jwt.getTokenValue(), jwt.getExpiresAt());
+    } else {
+      LOGGER.debug("skip setting identical cookie");
+    }
+  }
+
 }

@@ -19,7 +19,7 @@ import com.celements.spring.security.oauth2.cookietoken.CookieTokenService;
 
 public class HeaderToCookieAccessTokenFilter extends OncePerRequestFilter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CookieTokenService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HeaderToCookieAccessTokenFilter.class);
 
   private final CookieTokenService tokenService;
 

@@ -74,6 +74,13 @@
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-oauth2-client</artifactId>
       <version>${spring.security.version}</version>
+      <exclusions>
+        <exclusion>
+          <!-- hibernate brings a much older asm which is incompatible -->
+          <groupId>org.ow2.asm</groupId>
+          <artifactId>asm</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
   <scm>

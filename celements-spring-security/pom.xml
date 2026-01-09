@@ -28,7 +28,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>celements-spring-security</artifactId>
-  <version>6.3-SNAPSHOT</version>
+  <version>6.3</version>
   <description>Celements Spring Security</description>
   <dependencies>
 
@@ -87,6 +87,6 @@
     <connection>scm:git:git@github.com:celements/celements-spring.git</connection>
     <developerConnection>scm:git:git@github.com:celements/celements-spring.git</developerConnection>
     <url>https://github.com/celements/celements-spring/celements-spring-mvc</url>
-    <tag>HEAD</tag>
+    <tag>celements-spring-security-6.3</tag>
   </scm>
 </project>

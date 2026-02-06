@@ -85,6 +85,7 @@ public class CelSecurityFilterChainConfig {
             new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")),
             oAuthTenantMatcher))
         .csrf(csrf -> csrf.disable())
+        .headers(headers -> headers.frameOptions().sameOrigin())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .securityContext(sc -> sc
             .securityContextRepository(new RequestAttributeSecurityContextRepository())

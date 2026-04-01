@@ -24,11 +24,11 @@
   <parent>
     <groupId>com.celements</groupId>
     <artifactId>celements</artifactId>
-    <version>7.0-SNAPSHOT</version>
+    <version>7.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>celements-spring-mvc</artifactId>
-  <version>7.0-SNAPSHOT</version>
+  <version>7.1-SNAPSHOT</version>
   <description>Celements Spring MVC</description>
   <dependencies>
     <dependency>
@@ -40,7 +40,7 @@
     <dependency>
       <groupId>com.celements</groupId>
       <artifactId>celements-spring-security</artifactId>
-      <version>7.0-SNAPSHOT</version>
+      <version>7.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 

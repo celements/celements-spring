@@ -61,7 +61,9 @@ public abstract class AuthenticatedBaseController {
       XWikiContext xcontext = eCtx.get(XWIKI_CONTEXT).orElseThrow();
       XWikiUser xuser = xwiki.checkAuth(xcontext);
       if (xuser != null) {
-        var user = userService.getUser(xuser.getUser());
+        // resolve user BEFORE setting in xcontext to avoid leaving an invalid user
+        // if getUser throws (e.g. user doc/object deleted between auth and lookup)
+        User user = userService.getUser(xuser.getUser());
         xcontext.setUser(xuser.getUser(), xuser.isMain());
         return Optional.of(user);
       }

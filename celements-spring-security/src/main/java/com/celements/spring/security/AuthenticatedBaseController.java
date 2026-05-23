@@ -48,6 +48,9 @@ public abstract class AuthenticatedBaseController {
    * This is necessary because the system supports Struts-only sessions that have
    * no Spring Security principal, so Spring's isAuthenticated() alone is insufficient.
    *
+   * When legacy auth succeeds, the authenticated user is written back to the XWiki context so
+   * downstream model services see the same current user as Struts request handling would provide.
+   *
    * Long-term improvement, this bridge should move into the Spring Security filter chain so
    * legacy-authenticated users populate the SecurityContext before controller authorization runs.
    */
@@ -58,7 +61,11 @@ public abstract class AuthenticatedBaseController {
       XWikiContext xcontext = eCtx.get(XWIKI_CONTEXT).orElseThrow();
       XWikiUser xuser = xwiki.checkAuth(xcontext);
       if (xuser != null) {
-        return Optional.of(userService.getUser(xuser.getUser()));
+        // resolve user BEFORE setting in xcontext to avoid leaving an invalid user
+        // if getUser throws (e.g. user doc/object deleted between auth and lookup)
+        User user = userService.getUser(xuser.getUser());
+        xcontext.setUser(xuser.getUser(), xuser.isMain());
+        return Optional.of(user);
       }
     } catch (XWikiException | UserInstantiationException exc) {
       logger.warn("Failed to check auth", exc);
@@ -73,7 +80,7 @@ public abstract class AuthenticatedBaseController {
   protected ResponseEntity<String> toErrorResponse(HttpStatus status, Exception e) {
     String body = rightsAccess.isSuperAdmin()
         ? ExceptionUtils.getStackTrace(e)
-        : "Error:" + e.getMessage();
+        : "Error: " + e.getMessage();
     return ResponseEntity.status(status).body(body);
   }
 

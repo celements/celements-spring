@@ -74,7 +74,7 @@ public abstract class AuthenticatedBaseController {
   }
 
   protected boolean checkAuth(Predicate<User> check) {
-    return checkAuth().filter(check).isPresent();
+    return check.test(checkAuth().orElse(null));
   }
 
   protected ResponseEntity<String> toErrorResponse(HttpStatus status, Exception e) {

@@ -28,7 +28,10 @@ public class CelMvcConfig implements WebMvcConfigurer {
   private final List<CelMvcInterceptor> interceptors;
 
   @Inject
-  public CelMvcConfig(List<CelMvcInterceptor> interceptors) {
+  public CelMvcConfig(
+      SpringDocConfigProperties springDocConfig,
+      List<CelMvcInterceptor> interceptors) {
+    springDocConfig.setUseFqn(true);
     this.interceptors = List.copyOf(interceptors);
   }
 

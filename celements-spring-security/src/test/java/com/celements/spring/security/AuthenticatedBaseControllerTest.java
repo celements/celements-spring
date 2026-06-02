@@ -140,4 +140,18 @@ public class AuthenticatedBaseControllerTest extends AbstractComponentTest {
     assertFalse("predicate rejecting the user should return false", result);
   }
 
+  @Test
+  public void test_checkAuth_predicate_allowsGuestUser() throws Exception {
+    String originalUser = getXContext().getUser();
+    expect(getXContext().getWiki().checkAuth(same(getXContext()))).andReturn(null);
+    replayDefault();
+
+    boolean result = controller.checkAuth(user -> user == null);
+
+    verifyDefault();
+    assertTrue("predicate allowing guest (null user) should return true", result);
+    assertEquals("xcontext user must not be changed for guest",
+        originalUser, getXContext().getUser());
+  }
+
 }

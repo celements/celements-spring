@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.aop.framework.Advised;
 import org.springframework.stereotype.Component;
 
 import com.celements.auth.user.User;
@@ -24,13 +24,7 @@ public class AuthenticatedBaseControllerTest extends AbstractComponentTest {
   private UserService userServiceMock;
   private User userMock;
 
-  /**
-   * Concrete subclass of the abstract {@link AuthenticatedBaseController} for testing.
-   * The {@code @PreAuthorize("permitAll()")} override is necessary to prevent Spring Security
-   * from rejecting calls in the test environment which has no authenticated SecurityContext.
-   */
   @Component
-  @PreAuthorize("permitAll()")
   static class TestController extends AuthenticatedBaseController {
     // only exists to make the abstract class instantiable for tests
   }
@@ -40,7 +34,19 @@ public class AuthenticatedBaseControllerTest extends AbstractComponentTest {
     userServiceMock = registerComponentMock(UserService.class);
     registerComponentMock(IRightsAccessFacadeRole.class);
     userMock = createDefaultMock(User.class);
-    controller = getBeanFactory().createBean(TestController.class);
+    controller = getBeanTarget(getBeanFactory().createBean(TestController.class));
+  }
+
+  /**
+   * Returns the proxied bean's target so these tests exercise {@link AuthenticatedBaseController}
+   * method logic directly instead of Spring Security method interceptors.
+   */
+  @SuppressWarnings("unchecked")
+  private <T> T getBeanTarget(T bean) throws Exception {
+    if (bean instanceof Advised advised) {
+      return (T) advised.getTargetSource().getTarget();
+    }
+    return bean;
   }
 
   @Test
@@ -132,6 +138,20 @@ public class AuthenticatedBaseControllerTest extends AbstractComponentTest {
 
     verifyDefault();
     assertFalse("predicate rejecting the user should return false", result);
+  }
+
+  @Test
+  public void test_checkAuth_predicate_allowsGuestUser() throws Exception {
+    String originalUser = getXContext().getUser();
+    expect(getXContext().getWiki().checkAuth(same(getXContext()))).andReturn(null);
+    replayDefault();
+
+    boolean result = controller.checkAuth(user -> user == null);
+
+    verifyDefault();
+    assertTrue("predicate allowing guest (null user) should return true", result);
+    assertEquals("xcontext user must not be changed for guest",
+        originalUser, getXContext().getUser());
   }
 
 }

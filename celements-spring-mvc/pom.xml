@@ -23,24 +23,40 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
     <groupId>com.celements</groupId>
-    <artifactId>celements</artifactId>
+    <artifactId>celements-parent</artifactId>
     <version>7.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>celements-spring-mvc</artifactId>
-  <version>7.1-SNAPSHOT</version>
   <description>Celements Spring MVC</description>
   <dependencies>
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-servlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-xwiki-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.celements</groupId>
       <artifactId>celements-spring-security</artifactId>
-      <version>7.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 
@@ -48,7 +64,6 @@
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-webmvc-core</artifactId>
-      <version>1.8.0</version>
     </dependency>
 
   </dependencies>

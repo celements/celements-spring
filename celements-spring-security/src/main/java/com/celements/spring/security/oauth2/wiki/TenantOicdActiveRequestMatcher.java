@@ -16,7 +16,7 @@ import org.xwiki.context.Execution;
 import org.xwiki.model.reference.WikiReference;
 
 import com.celements.spring.security.oauth2.IdentityService;
-import com.celements.wiki.service.WikiManagerService;
+import com.celements.wiki.WikiDescriptorService;
 
 /**
  * evaluates if the current request-tenant has an enabled oicd configuration
@@ -29,13 +29,13 @@ public class TenantOicdActiveRequestMatcher implements RequestMatcher {
       .getLogger(TenantOicdActiveRequestMatcher.class);
 
   private final IdentityService identityService;
-  private final WikiManagerService wikiManager;
+  private final WikiDescriptorService wikiManager;
   private final Execution execution;
 
   @Inject
   public TenantOicdActiveRequestMatcher(
       IdentityService identityService,
-      WikiManagerService wikiManager,
+      WikiDescriptorService wikiManager,
       Execution execution) {
     this.identityService = identityService;
     this.wikiManager = wikiManager;

@@ -7,7 +7,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>celements-spring-mvc</artifactId>
-  <version>7.1-SNAPSHOT</version>
+  <version>7.1-RC1</version>
   <description>Celements Spring MVC</description>
   <dependencies>
     <dependency>
@@ -51,6 +51,6 @@
     <connection>scm:git:git@github.com:celements/celements-spring.git</connection>
     <developerConnection>scm:git:git@github.com:celements/celements-spring.git</developerConnection>
     <url>https://github.com/celements/celements-spring/celements-spring-mvc</url>
-    <tag>HEAD</tag>
+    <tag>celements-spring-mvc-7.1-RC1</tag>
   </scm>
 </project>

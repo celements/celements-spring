@@ -47,12 +47,11 @@ public class DocumentCacheController extends AuthenticatedBaseController {
     store.clearCache();
   }
 
-  private User requireSuperAdmin() {
+  private void requireSuperAdmin() {
     User user = checkAuth().orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     if (!rightsAccess.isSuperAdmin(user)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
-    return user;
   }
 
 }

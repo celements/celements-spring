@@ -51,6 +51,18 @@
       <artifactId>springdoc-openapi-webmvc-core</artifactId>
     </dependency>
 
+    <!-- test -->
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-shared-tests</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-subsystem-migration-manager</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
   <scm>
     <connection>scm:git:git@github.com:celements/celements-spring.git</connection>

@@ -21,6 +21,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-model</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
       <scope>provided</scope>
@@ -44,6 +49,18 @@
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-webmvc-core</artifactId>
+    </dependency>
+
+    <!-- test -->
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-shared-tests</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.celements</groupId>
+      <artifactId>celements-subsystem-migration-manager</artifactId>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>

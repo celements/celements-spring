@@ -1,4 +1,4 @@
-package com.celements.spring.mvc;
+package com.celements.spring.mvc.limiter;
 
 import static org.junit.Assert.*;
 import static org.springframework.http.HttpStatus.*;
@@ -19,6 +19,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
 
 import com.celements.common.test.AbstractComponentTest;
+import com.celements.spring.mvc.limiter.EndpointConcurrencyConfig;
+import com.celements.spring.mvc.limiter.EndpointConcurrencyLimit;
+import com.celements.spring.mvc.limiter.EndpointConcurrencyLimiter;
 
 public class EndpointConcurrencyLimiterTest extends AbstractComponentTest {
 

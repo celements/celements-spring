@@ -1,4 +1,4 @@
-package com.celements.spring.mvc;
+package com.celements.spring.mvc.limiter;
 
 public record EndpointConcurrencyConfig(int maxConcurrent, int waitMillis) {
 

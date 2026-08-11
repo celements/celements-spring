@@ -1,4 +1,4 @@
-package com.celements.spring.mvc;
+package com.celements.spring.mvc.limiter;
 
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;

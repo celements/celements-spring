@@ -1,4 +1,4 @@
-package com.celements.spring.mvc;
+package com.celements.spring.mvc.limiter;
 
 import static com.google.common.base.Preconditions.*;
 import static java.util.concurrent.TimeUnit.*;
@@ -17,6 +17,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
+
+import com.celements.spring.mvc.CelMvcInterceptor;
 
 import one.util.streamex.EntryStream;
 

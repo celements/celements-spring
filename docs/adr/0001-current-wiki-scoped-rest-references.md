@@ -5,16 +5,18 @@
 
 ## Context
 
-Celements REST endpoints may accept XWiki document and space references. A
-wiki-qualified reference can cross a tenant boundary, even when its qualifier
-names the wiki currently handling the request. Accepting such references
-without an explicit cross-wiki authorization and information-disclosure
-contract risks exposing the existence or content of resources outside the
-endpoint's intended scope.
+Celements REST endpoints may accept XWiki document and space references. For an
+endpoint scoped to the wiki handling the request, the request context already
+defines the tenant boundary. A wiki qualifier introduces a second scope
+selector: naming another wiki conflicts with the endpoint's scope, while naming
+the current wiki creates an alternative representation and makes a
+deployment-specific wiki name part of the public contract.
 
-REST responses also need one stable representation of references. Returning
-wiki-qualified and local references interchangeably would make contracts
-caller- and deployment-dependent.
+Requests and responses need one stable representation of references. Supporting
+both qualified and local forms would make the contract caller-dependent, while
+returning qualified references would make it deployment-dependent. Exposing or
+accepting a cross-wiki scope requires an explicit authorization and
+information-disclosure contract.
 
 ## Decision
 
@@ -34,12 +36,15 @@ serialization, and information disclosure before implementation.
 
 ## Consequences
 
-- Current-wiki endpoints have an unambiguous tenant boundary.
-- Clients cannot use a current-wiki endpoint as a cross-wiki discovery
-  mechanism.
-- Request validation must distinguish canonical local references from malformed,
-  noncanonical, and wiki-qualified input.
-- Responses remain portable because their references do not depend on the
-  current wiki name.
-- Cross-wiki use cases require deliberate API design rather than an implicit
-  extension of a local endpoint.
+- Clients holding qualified references, including references qualified with the
+  current wiki, must serialize them locally before calling these endpoints.
+- Response references are contextual identifiers for the wiki serving the
+  response, not globally unique identifiers. A client moving them between
+  request contexts must retain the source-wiki context separately.
+- Payloads neither expose nor depend on internal wiki names, so the same local
+  reference representation can be used in deployments with different wiki
+  names.
+- Validation can reject every qualifier uniformly without comparing a supplied
+  wiki name with the current wiki or disclosing whether it matched.
+- Cross-wiki clients need a separate API contract with a public tenant identity,
+  authorization rules, and defined disclosure behavior.

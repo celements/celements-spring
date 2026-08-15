@@ -43,19 +43,18 @@ public class EndpointConcurrencyLimiter implements CelMvcInterceptor {
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
       throws IOException {
-    var name = getConcurrencyLimit(handler).orElse(null);
-    if ((name == null) || tryAcquire(name)) {
+    if (findLimiterName(handler).map(this::tryAcquire).orElse(true)) {
       return true;
     }
     response.sendError(SERVICE_UNAVAILABLE.value(), "Endpoint concurrency limit exhausted");
     return false;
   }
 
-  private boolean tryAcquire(String name) {
+  private boolean tryAcquire(String limiterName) {
     try {
-      var config = configs.get(name);
-      checkState(config != null, "Missing EndpointConcurrencyConfig [%s]", name);
-      return limiters.get(name).tryAcquire(config.waitMillis(), MILLISECONDS);
+      var config = configs.get(limiterName);
+      checkState(config != null, "Missing EndpointConcurrencyConfig [%s]", limiterName);
+      return limiters.get(limiterName).tryAcquire(config.waitMillis(), MILLISECONDS);
     } catch (InterruptedException exc) {
       Thread.currentThread().interrupt();
       return false;
@@ -65,12 +64,12 @@ public class EndpointConcurrencyLimiter implements CelMvcInterceptor {
   @Override
   public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
       Object handler, Exception exc) {
-    getConcurrencyLimit(handler)
+    findLimiterName(handler)
         .map(limiters::get)
         .ifPresent(Semaphore::release);
   }
 
-  private Optional<String> getConcurrencyLimit(Object handler) {
+  private Optional<String> findLimiterName(Object handler) {
     if (!(handler instanceof HandlerMethod methodHandler)) {
       return Optional.empty();
     }

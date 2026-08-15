@@ -41,19 +41,19 @@ public class EndpointConcurrencyLimiterTest extends AbstractComponentTest {
   }
 
   @Test
-  public void test_sameLimitSharesCapacityAndReleasesAfterCompletion() throws Exception {
+  public void test_sameLimitSharesCapacityAcrossEndpoints() throws Exception {
     var request = new MockHttpServletRequest();
-    assertTrue(limiter.preHandle(
-        request, new MockHttpServletResponse(), handlerMethod("limitedEndpoint")));
+    var handler = handlerMethod("limitedEndpoint");
+    var otherHandler = handlerMethod("otherSearchEndpoint");
+    assertTrue(limiter.preHandle(request, new MockHttpServletResponse(), handler));
 
     var response = new MockHttpServletResponse();
-    assertFalse(limiter.preHandle(
-        new MockHttpServletRequest(), response, handlerMethod("limitedEndpoint")));
+    assertFalse(limiter.preHandle(new MockHttpServletRequest(), response, otherHandler));
     assertEquals(SERVICE_UNAVAILABLE.value(), response.getStatus());
 
-    limiter.afterCompletion(request, null, handlerMethod("limitedEndpoint"), null);
+    limiter.afterCompletion(request, null, handler, null);
     assertTrue(limiter.preHandle(new MockHttpServletRequest(), new MockHttpServletResponse(),
-        handlerMethod("limitedEndpoint")));
+        otherHandler));
   }
 
   @Test
@@ -122,6 +122,9 @@ public class EndpointConcurrencyLimiterTest extends AbstractComponentTest {
 
     @EndpointConcurrencyLimit("search")
     public void limitedEndpoint() {}
+
+    @EndpointConcurrencyLimit("search")
+    public void otherSearchEndpoint() {}
 
     @EndpointConcurrencyLimit("other")
     public void otherLimitedEndpoint() {}

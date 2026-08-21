@@ -58,6 +58,12 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-webmvc-core</artifactId>
     </dependency>
+    <!-- Springdoc's ModelResolver loads XmlRootElement reflectively on Java 21. -->
+    <dependency>
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+      <scope>runtime</scope>
+    </dependency>
 
     <!-- test -->
     <dependency>

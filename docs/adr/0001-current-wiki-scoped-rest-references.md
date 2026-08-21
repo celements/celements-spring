@@ -1,6 +1,6 @@
 # ADR 0001: Current-Wiki-Scoped REST References
 
-- Status: accepted
+- Status: DRAFT
 - Date: 2026-07-30
 
 ## Context

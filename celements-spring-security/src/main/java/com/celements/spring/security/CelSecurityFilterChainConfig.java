@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
@@ -30,6 +31,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.xwiki.context.Execution;
 
+import com.celements.auth.MainAdminConfig;
 import com.celements.auth.user.UserService;
 import com.celements.spring.security.oauth2.IdentityService;
 import com.celements.spring.security.oauth2.cookietoken.CompositeBearerTokenResolver;
@@ -43,6 +45,7 @@ import com.celements.spring.security.oauth2.wiki.TenantOicdActiveRequestMatcher;
 import com.celements.spring.security.oauth2.wiki.WikiAuthenticationEntryPoint;
 
 @Configuration
+@Profile("!test")
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(jsr250Enabled = true, prePostEnabled = true)
 public class CelSecurityFilterChainConfig {
@@ -53,6 +56,7 @@ public class CelSecurityFilterChainConfig {
   private final AuthenticationManagerResolver<HttpServletRequest> authManagerResolver;
   private final UserService userService;
   private final CookieTokenService tokenService;
+  private final MainAdminConfig mainAdminConfig;
   private final Execution execution;
 
   @Inject
@@ -61,11 +65,13 @@ public class CelSecurityFilterChainConfig {
       AuthenticationManagerResolver<HttpServletRequest> authManagerResolver,
       UserService userService,
       CookieTokenService tokenService,
+      MainAdminConfig mainAdminConfig,
       Execution execution) {
     this.identityService = identityService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
     this.tokenService = tokenService;
+    this.mainAdminConfig = mainAdminConfig;
     this.execution = execution;
   }
 
@@ -102,7 +108,7 @@ public class CelSecurityFilterChainConfig {
             new TokenRefreshFilter(tokenService),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
-            new ExecutionContextAuthenticationFilter(userService, execution),
+            new ExecutionContextAuthenticationFilter(userService, mainAdminConfig, execution),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new HeaderToCookieAccessTokenFilter(tokenService),
@@ -144,7 +150,7 @@ public class CelSecurityFilterChainConfig {
             new TokenRefreshFilter(tokenService),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
-            new ExecutionContextAuthenticationFilter(userService, execution),
+            new ExecutionContextAuthenticationFilter(userService, mainAdminConfig, execution),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new HeaderToCookieAccessTokenFilter(tokenService),

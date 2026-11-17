@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -25,21 +24,18 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.RefreshTokenOAuth2AuthorizedClientProvider;
-import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.core.AbstractOAuth2Token;
+import org.springframework.security.oauth2.client.endpoint.DefaultRefreshTokenTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 
 import com.celements.spring.security.oauth2.IdentityService;
@@ -53,23 +49,26 @@ public class CookieTokenService {
 
   public static final String COOKIE_ACCESS_TOKEN = "access_token";
   public static final String COOKIE_REFRESH_TOKEN = "refresh_token";
+  public static final String REFRESHED_ACCESS_TOKEN_ATTRIBUTE = CookieTokenService.class.getName()
+      + ".refreshedAccessToken";
 
   private static final DateTimeFormatter PATTERN_FMT = DateTimeFormatter
       .ofPattern("yyyy-MM-dd HH:mm:ss z")
       .withZone(ZoneId.systemDefault());
 
-  private final OAuth2AuthorizedClientManager refreshOnlyAuthorizedClientManager;
+  private static final Duration REFRESH_SKEW = Duration.ofMinutes(2);
+
+  private final DefaultRefreshTokenTokenResponseClient refreshClient =
+      new DefaultRefreshTokenTokenResponseClient();
   private final WikiClientRegistrationRepository registrationRepo;
   private final IdentityService identityService;
 
   @Inject
   public CookieTokenService(
-      OAuth2AuthorizedClientRepository authClientRepo,
       WikiClientRegistrationRepository registrationRepo,
       IdentityService identityService) {
     this.registrationRepo = registrationRepo;
     this.identityService = identityService;
-    this.refreshOnlyAuthorizedClientManager = refreshOnlyWebManager(authClientRepo);
   }
 
   private Optional<String> getTokenValue(@NotNull HttpServletRequest req,
@@ -85,11 +84,9 @@ public class CookieTokenService {
   }
 
   public void storeTokens(@NotNull HttpServletResponse response,
-      @NotNull OAuth2AuthorizedClient client) {
-    OAuth2AccessToken accessToken = client.getAccessToken();
-    OAuth2RefreshToken refreshToken = client.getRefreshToken();
+      @NotNull OAuth2AccessToken accessToken, @Nullable OAuth2RefreshToken refreshToken) {
     Instant expiresAt = accessToken.getExpiresAt();
-    LOGGER.debug("storeTokens for '{}' expAt='{}'", client.getPrincipalName(), expiresAt);
+    LOGGER.debug("storeTokens expAt='{}'", expiresAt);
     storeAccessJwtCookie(response, accessToken.getTokenValue(), expiresAt);
     if (refreshToken != null) {
       Instant issuedAt = refreshToken.getIssuedAt();
@@ -100,84 +97,36 @@ public class CookieTokenService {
     }
   }
 
-  private static final Duration REFRESH_SKEW = Duration.ofMinutes(2);
-
-  private boolean shouldRefresh(@NotNull OAuth2AuthorizedClient client) {
-    return Optional.ofNullable(client.getAccessToken())
-        .filter(exp -> client.getRefreshToken() != null)
-        .map(OAuth2AccessToken::getExpiresAt)
-        .map(exp -> Instant.now().isAfter(exp.minus(REFRESH_SKEW)))
-        .orElse(false);
-  }
-
-  private OAuth2AuthorizedClientManager refreshOnlyWebManager(
-      OAuth2AuthorizedClientRepository repo) {
-    var manager = new DefaultOAuth2AuthorizedClientManager(registrationRepo, repo);
-    manager.setAuthorizedClientProvider(getRefreshTokenAuthorizedClientProvider());
-    return manager;
-  }
-
-  private RefreshTokenOAuth2AuthorizedClientProvider getRefreshTokenAuthorizedClientProvider() {
-    var provider = new RefreshTokenOAuth2AuthorizedClientProvider();
-    provider.setClockSkew(REFRESH_SKEW);
-    return provider;
-  }
-
   @NotNull
-  public Optional<OAuth2AuthorizedClient> refreshTokens(@NotNull HttpServletRequest req,
-      @NotNull HttpServletResponse resp) {
-    var auth = SecurityContextHolder.getContext().getAuthentication();
-    if ((auth == null) || !auth.isAuthenticated()) {
-      LOGGER.debug("skip refresh check because no authentication object or not authenticated: "
-          + "authPresent='{}', authenticated='{}'", (auth != null),
-          (auth != null) && auth.isAuthenticated());
+  public Optional<RefreshedTokens> refreshTokens(@NotNull HttpServletRequest req) {
+    if (WebUtils.getCookie(req, COOKIE_REFRESH_TOKEN) == null) {
       return Optional.empty();
     }
-    Optional<OAuth2AuthorizedClient> oldClientOpt = reconstructAuthClientFromCookie(req, auth);
-    LOGGER.debug("refresh check: accessCookie='{}', refreshCookie='{}', existingClient='{}'"
-        + " expAt='{}', shouldRefresh='{}'", getAccessTokenFromCookie(req).isPresent(),
-        getRefreshToken(req).isPresent(), oldClientOpt.isPresent(),
-        oldClientOpt.map(c -> c.getAccessToken().getExpiresAt()).orElse(null),
-        oldClientOpt.map(this::shouldRefresh).orElse(false));
-    return oldClientOpt
-        .filter(this::shouldRefresh)
-        .map(existingClient -> OAuth2AuthorizeRequest
-            .withAuthorizedClient(existingClient)
-            .principal(auth)
-            .attribute(HttpServletRequest.class.getName(), req)
-            .attribute(HttpServletResponse.class.getName(), resp)
-            .build())
-        .map(refreshOnlyAuthorizedClientManager::authorize)
-        .filter(client -> hasAccessTokenChanged(oldClientOpt, client)
-            || hasRefreshTokenChanged(oldClientOpt, client));
-  }
-
-  boolean hasRefreshTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
-      OAuth2AuthorizedClient client) {
-    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getRefreshToken);
-  }
-
-  boolean hasAccessTokenChanged(Optional<OAuth2AuthorizedClient> oldClientOpt,
-      OAuth2AuthorizedClient client) {
-    return equalsTokenValues(oldClientOpt, client, OAuth2AuthorizedClient::getAccessToken);
-  }
-
-  @NotNull
-  private Optional<OAuth2AuthorizedClient> reconstructAuthClientFromCookie(
-      @NotNull HttpServletRequest req, Authentication auth) {
-    Optional<Jwt> accessJwtOpt = getJwtFromCookie(req, COOKIE_ACCESS_TOKEN);
-    Optional<OAuth2RefreshToken> refreshTokenOpt = getRefreshToken(req);
-    if (accessJwtOpt.isPresent() && refreshTokenOpt.isPresent()) {
-      OAuth2AccessToken accessToken = reconstructAccessTokenFromJwt(accessJwtOpt.get());
-      OAuth2RefreshToken refreshToken = refreshTokenOpt.get();
-      return Optional.of(new OAuth2AuthorizedClient(
-          registrationRepo.findByRegistrationId(identityService.getRegistrationId()),
-          auth.getName(),
-          accessToken,
-          refreshToken));
+    Optional<OAuth2AccessToken> accessToken = getAccessTokenFromCookie(req);
+    if (accessToken.filter(token -> (token.getExpiresAt() == null)
+        || !Instant.now().isAfter(token.getExpiresAt().minus(REFRESH_SKEW))).isPresent()) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    OAuth2RefreshToken refreshToken = getRefreshToken(req).orElseThrow(() ->
+        new OAuth2AuthorizationException(new OAuth2Error(OAuth2ErrorCodes.INVALID_GRANT,
+            "Malformed refresh cookie", null)));
+    // Spring 5.7 requires access-token metadata, but never sends this placeholder.
+    OAuth2AccessToken grantAccessToken = accessToken.orElseGet(() -> new OAuth2AccessToken(
+        OAuth2AccessToken.TokenType.BEARER, "refresh-grant-metadata", null, null, Set.of()));
+    var registration = registrationRepo.findByRegistrationId(identityService.getRegistrationId());
+    // Concurrent refreshes rely on Keycloak reuse settings:
+    // docs/adr/0002-token-refresh-concurrency.md.
+    var result = refreshClient.getTokenResponse(new OAuth2RefreshTokenGrantRequest(
+        registration, grantAccessToken, refreshToken));
+    OAuth2RefreshToken renewedRefreshToken = result.getRefreshToken();
+    if ((renewedRefreshToken == null)
+        || refreshToken.getTokenValue().equals(renewedRefreshToken.getTokenValue())) {
+      renewedRefreshToken = refreshToken;
+    }
+    return Optional.of(new RefreshedTokens(result.getAccessToken(), renewedRefreshToken));
   }
+
+  public record RefreshedTokens(OAuth2AccessToken accessToken, OAuth2RefreshToken refreshToken) {}
 
   /**
    * @param request
@@ -187,8 +136,9 @@ public class CookieTokenService {
   @NotNull
   public Optional<OAuth2RefreshToken> getRefreshToken(@NotNull HttpServletRequest req) {
     return getTokenValue(req, CookieTokenService.COOKIE_REFRESH_TOKEN)
-        .map(val -> {
-          String[] parts = val.split(":", 2);
+        .map(val -> val.split(":", 2))
+        .filter(parts -> StringUtils.hasText(parts[0]))
+        .map(parts -> {
           String tokenValue = parts[0];
           final Instant issuedAt = convertIssuedAt(parts);
           LOGGER.info("getRefreshToken issuedAt='{}'",
@@ -211,8 +161,8 @@ public class CookieTokenService {
 
   @NotNull
   public Optional<String> getAccessToken(@NotNull HttpServletRequest req) {
-    return getAccessTokenFromCookie(req)
-        .map(t -> t.getTokenValue());
+    return Optional.ofNullable((String) req.getAttribute(REFRESHED_ACCESS_TOKEN_ATTRIBUTE))
+        .or(() -> getAccessTokenFromCookie(req).map(OAuth2AccessToken::getTokenValue));
   }
 
   /**
@@ -280,21 +230,6 @@ public class CookieTokenService {
         .filter(Objects::nonNull)
         .findFirst().orElse(List.of());
     return new HashSet<>(scopes);
-  }
-
-  private boolean equalsTokenValues(Optional<OAuth2AuthorizedClient> oldClientOpt,
-      OAuth2AuthorizedClient client,
-      Function<? super OAuth2AuthorizedClient, ? extends AbstractOAuth2Token> getValueFunc) {
-    return !Objects.equals(getOptTokenValue(oldClientOpt, getValueFunc),
-        getOptTokenValue(Optional.ofNullable(client), getValueFunc));
-  }
-
-  private String getOptTokenValue(Optional<OAuth2AuthorizedClient> clientOpt,
-      Function<? super OAuth2AuthorizedClient, ? extends AbstractOAuth2Token> getValueFunc) {
-    return clientOpt
-        .map(getValueFunc)
-        .map(AbstractOAuth2Token::getTokenValue)
-        .orElse(null);
   }
 
 }

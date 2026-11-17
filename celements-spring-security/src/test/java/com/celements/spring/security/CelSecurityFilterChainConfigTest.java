@@ -44,6 +44,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.WikiReference;
 
@@ -72,7 +73,7 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
   public void prepareTest() throws Exception {
     registerComponentMocks(IdentityService.class, CookieTokenService.class,
         UserService.class, MainAdminConfig.class, LogoutHandler.class, LogoutSuccessHandler.class,
-        TenantOicdActiveRequestMatcher.class);
+        TenantOicdActiveRequestMatcher.class, ApiRequestMatcher.class);
     // Create explicitly: component scanning excludes this configuration under the test profile.
     config = getBeanFactory().createBean(CelSecurityFilterChainConfig.class);
     ObjectPostProcessor<Object> postProcessor = new ObjectPostProcessor<>() {
@@ -104,22 +105,26 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
   @Test
   public void test_apiFilterChain_authenticationFilterOrder() throws Exception {
     IdentityService identityServiceMock = getMock(IdentityService.class);
+    RequestMatcher apiMatcherMock = createMock(RequestMatcher.class);
     expect(identityServiceMock.getHost()).andStubReturn("identity.example");
     expect(identityServiceMock.getRealm()).andStubReturn("wiki");
-    replayDefault();
+    expect(getMock(ApiRequestMatcher.class).forAllPaths()).andReturn(apiMatcherMock);
+    replayDefault(apiMatcherMock);
     assertAuthenticationFilterOrder(config.apiFilterChain(http));
-    verifyDefault();
+    verifyDefault(apiMatcherMock);
   }
 
   @Test
   public void test_loginFilterChain_authenticationFilterOrder() throws Exception {
     IdentityService identityServiceMock = getMock(IdentityService.class);
+    RequestMatcher apiMatcherMock = createMock(RequestMatcher.class);
     expect(identityServiceMock.getHost()).andStubReturn("identity.example");
     expect(identityServiceMock.getRealm()).andStubReturn("wiki");
     expect(identityServiceMock.getLoginUrl()).andStubReturn("/oauth2/authorization/wiki");
-    replayDefault();
+    expect(getMock(ApiRequestMatcher.class).forAllPaths()).andReturn(apiMatcherMock);
+    replayDefault(apiMatcherMock);
     assertAuthenticationFilterOrder(createLoginFilterChain());
-    verifyDefault();
+    verifyDefault(apiMatcherMock);
   }
 
   @Test
@@ -127,12 +132,14 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
     request.setCookies(new Cookie(CookieTokenService.COOKIE_REFRESH_TOKEN, "old-refresh:1000"));
     IdentityService identityServiceMock = getMock(IdentityService.class);
     CookieTokenService tokenServiceMock = getMock(CookieTokenService.class);
+    RequestMatcher apiMatcherMock = createMock(RequestMatcher.class);
     expect(identityServiceMock.getHost()).andStubReturn("identity.example");
     expect(identityServiceMock.getRealm()).andStubReturn("wiki");
+    expect(getMock(ApiRequestMatcher.class).forAllPaths()).andReturn(apiMatcherMock);
     expect(tokenServiceMock.refreshTokens(request)).andThrow(
         new OAuth2AuthorizationException(new OAuth2Error(OAuth2ErrorCodes.INVALID_GRANT)));
     FilterChain downstreamChain = createMock(FilterChain.class);
-    replayDefault(downstreamChain);
+    replayDefault(apiMatcherMock, downstreamChain);
     SecurityFilterChain chain = config.apiFilterChain(http);
     TokenRefreshFilter refresh = chain.getFilters().stream()
         .filter(TokenRefreshFilter.class::isInstance).map(TokenRefreshFilter.class::cast)
@@ -142,7 +149,7 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
     assertEquals("Bearer", response.getHeader("WWW-Authenticate"));
     assertNull(response.getRedirectedUrl());
     assertNull(request.getSession(false));
-    verifyDefault(downstreamChain);
+    verifyDefault(apiMatcherMock, downstreamChain);
   }
 
   @Test
@@ -154,13 +161,15 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
     request.setCookies(new Cookie(CookieTokenService.COOKIE_REFRESH_TOKEN, "old-refresh:1000"));
     IdentityService identityServiceMock = getMock(IdentityService.class);
     CookieTokenService tokenServiceMock = getMock(CookieTokenService.class);
+    RequestMatcher apiMatcherMock = createMock(RequestMatcher.class);
     expect(identityServiceMock.getHost()).andStubReturn("identity.example");
     expect(identityServiceMock.getRealm()).andStubReturn("wiki");
     expect(identityServiceMock.getLoginUrl()).andStubReturn("/oauth2/authorization/wiki");
+    expect(getMock(ApiRequestMatcher.class).forAllPaths()).andReturn(apiMatcherMock);
     expect(tokenServiceMock.refreshTokens(request)).andThrow(
         new OAuth2AuthorizationException(new OAuth2Error(OAuth2ErrorCodes.INVALID_GRANT)));
     FilterChain downstreamChain = createMock(FilterChain.class);
-    replayDefault(downstreamChain);
+    replayDefault(apiMatcherMock, downstreamChain);
     SecurityFilterChain chain = createLoginFilterChain();
     TokenRefreshFilter refresh = chain.getFilters().stream()
         .filter(TokenRefreshFilter.class::isInstance).map(TokenRefreshFilter.class::cast)
@@ -170,7 +179,7 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
     assertEquals("/wiki/oauth2/authorization/wiki", response.getRedirectedUrl());
     assertEquals("http://localhost/wiki/target", new HttpSessionRequestCache()
         .getRequest(request, response).getRedirectUrl());
-    verifyDefault(downstreamChain);
+    verifyDefault(apiMatcherMock, downstreamChain);
   }
 
   @Test
@@ -181,10 +190,13 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
     RefreshedTokens refreshedTokens = createRefreshedTokens();
     Jwt jwt = createAccessJwt();
     User userMock = createMock(User.class);
+    RequestMatcher apiMatcherMock = createMock(RequestMatcher.class);
     var xwikiUser = new XWikiUser("XWiki.TestUser", false);
     FilterChain downstreamChain = createMock(FilterChain.class);
     expect(identityServiceMock.getHost()).andStubReturn("identity.example");
     expect(identityServiceMock.getRealm()).andStubReturn("wiki");
+    expect(getMock(ApiRequestMatcher.class).forAllPaths()).andReturn(apiMatcherMock);
+    expect(apiMatcherMock.matches(isA(HttpServletRequest.class))).andReturn(true);
     expect(tokenServiceMock.refreshTokens(isA(HttpServletRequest.class)))
         .andReturn(Optional.of(refreshedTokens));
     tokenServiceMock.storeTokens(isA(HttpServletResponse.class), same(refreshedTokens.accessToken()),
@@ -217,11 +229,11 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
       ((HttpServletResponse) getCurrentArguments()[1]).setStatus(204);
       return null;
     });
-    replayDefault(userMock, downstreamChain);
+    replayDefault(apiMatcherMock, userMock, downstreamChain);
     new FilterChainProxy(config.apiFilterChain(http)).doFilter(request, response, downstreamChain);
     assertRequestCompletedWithoutRedirect();
     assertNull(request.getSession(false));
-    verifyDefault(userMock, downstreamChain);
+    verifyDefault(apiMatcherMock, userMock, downstreamChain);
   }
 
   @Test
@@ -235,11 +247,14 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
     RefreshedTokens refreshedTokens = createRefreshedTokens();
     Jwt jwt = createAccessJwt();
     User userMock = createMock(User.class);
+    RequestMatcher apiMatcherMock = createMock(RequestMatcher.class);
     var xwikiUser = new XWikiUser("XWiki.TestUser", false);
     FilterChain downstreamChain = createMock(FilterChain.class);
     expect(identityServiceMock.getHost()).andStubReturn("identity.example");
     expect(identityServiceMock.getRealm()).andStubReturn("wiki");
     expect(identityServiceMock.getLoginUrl()).andStubReturn("/oauth2/authorization/wiki");
+    expect(getMock(ApiRequestMatcher.class).forAllPaths()).andReturn(apiMatcherMock);
+    expect(apiMatcherMock.matches(isA(HttpServletRequest.class))).andReturn(false);
     expect(getMock(TenantOicdActiveRequestMatcher.class).matches(isA(HttpServletRequest.class)))
         .andReturn(true);
     expect(tokenServiceMock.refreshTokens(isA(HttpServletRequest.class)))
@@ -274,10 +289,10 @@ public class CelSecurityFilterChainConfigTest extends AbstractComponentTest {
       ((HttpServletResponse) getCurrentArguments()[1]).setStatus(204);
       return null;
     });
-    replayDefault(userMock, downstreamChain);
+    replayDefault(apiMatcherMock, userMock, downstreamChain);
     new FilterChainProxy(createLoginFilterChain()).doFilter(request, response, downstreamChain);
     assertRequestCompletedWithoutRedirect();
-    verifyDefault(userMock, downstreamChain);
+    verifyDefault(apiMatcherMock, userMock, downstreamChain);
   }
 
   private RefreshedTokens createRefreshedTokens() {

@@ -59,6 +59,7 @@ public class CelSecurityFilterChainConfig {
   private final CookieTokenService tokenService;
   private final MainAdminConfig mainAdminConfig;
   private final Execution execution;
+  private final ApiRequestMatcher apiRequestMatcher;
 
   @Inject
   public CelSecurityFilterChainConfig(
@@ -67,13 +68,15 @@ public class CelSecurityFilterChainConfig {
       UserService userService,
       CookieTokenService tokenService,
       MainAdminConfig mainAdminConfig,
-      Execution execution) {
+      Execution execution,
+      ApiRequestMatcher apiRequestMatcher) {
     this.identityService = identityService;
     this.authManagerResolver = authManagerResolver;
     this.userService = userService;
     this.tokenService = tokenService;
     this.mainAdminConfig = mainAdminConfig;
     this.execution = execution;
+    this.apiRequestMatcher = apiRequestMatcher;
   }
 
   @Bean
@@ -90,7 +93,7 @@ public class CelSecurityFilterChainConfig {
     return http
         // only non-API paths for tenants with OAuth
         .requestMatcher(new AndRequestMatcher(
-            new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**")),
+            new NegatedRequestMatcher(apiRequestMatcher.forAllPaths()),
             oAuthTenantMatcher))
         .csrf(csrf -> csrf.disable())
         .headers(headers -> headers.frameOptions().sameOrigin())
@@ -139,7 +142,7 @@ public class CelSecurityFilterChainConfig {
     LOGGER.info("apiFilterChain called for {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm));
     return http
-        .requestMatchers(r -> r.antMatchers("/api/**"))
+        .requestMatcher(apiRequestMatcher.forAllPaths())
         .csrf().disable()
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
@@ -170,6 +173,7 @@ public class CelSecurityFilterChainConfig {
   public WebSecurityCustomizer webSecurityCustomizer() {
     return web -> web
         .ignoring()
-        .antMatchers("/favicon.ico", "/api/v3/api-docs");
+        .requestMatchers(new AntPathRequestMatcher("/favicon.ico"),
+            apiRequestMatcher.forPattern("/v3/api-docs"));
   }
 }

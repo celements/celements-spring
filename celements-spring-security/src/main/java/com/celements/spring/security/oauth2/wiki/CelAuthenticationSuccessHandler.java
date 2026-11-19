@@ -35,7 +35,7 @@ public class CelAuthenticationSuccessHandler implements AuthenticationSuccessHan
           oauthToken.getAuthorizedClientRegistrationId(),
           oauthToken.getName());
       if (client != null) {
-        tokenService.storeTokens(response, client);
+        tokenService.storeTokens(response, client.getAccessToken(), client.getRefreshToken());
       }
     }
     var saved = new SavedRequestAwareAuthenticationSuccessHandler();

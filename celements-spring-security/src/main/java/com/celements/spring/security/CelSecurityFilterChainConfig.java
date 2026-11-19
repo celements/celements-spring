@@ -26,6 +26,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
@@ -88,6 +89,7 @@ public class CelSecurityFilterChainConfig {
       TenantOicdActiveRequestMatcher oAuthTenantMatcher) throws Exception {
     LOGGER.info("loginFilterChain called for {}, {}, {}", defer(identityService::getHost),
         defer(identityService::getRealm), defer(identityService::getLoginUrl));
+    var entryPoint = new WikiAuthenticationEntryPoint(identityService);
     return http
         // only non-API paths for tenants with OAuth
         .requestMatcher(new AndRequestMatcher(
@@ -107,8 +109,12 @@ public class CelSecurityFilterChainConfig {
                 new CompositeBearerTokenResolver(
                     new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
-        .addFilterAfter(
-            new TokenRefreshFilter(tokenService),
+        .addFilterBefore(
+            new TokenRefreshFilter(tokenService, (request, response, exception) -> {
+              // Refresh rejection bypasses ExceptionTranslationFilter's request saving.
+              http.getSharedObject(RequestCache.class).saveRequest(request, response);
+              entryPoint.commence(request, response, exception);
+            }),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new ExecutionContextAuthenticationFilter(userService, mainAdminConfig, execution),
@@ -125,8 +131,7 @@ public class CelSecurityFilterChainConfig {
             .logoutSuccessHandler(oicdLogoutSuccessHandler)
             .clearAuthentication(true)
             .invalidateHttpSession(true))
-        .exceptionHandling(ex -> ex
-            .authenticationEntryPoint(new WikiAuthenticationEntryPoint(identityService)))
+        .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
         .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
         .build();
   }
@@ -150,7 +155,7 @@ public class CelSecurityFilterChainConfig {
                     new CookieBearerTokenResolver(tokenService)))
             .authenticationManagerResolver(authManagerResolver))
         .addFilterBefore(
-            new TokenRefreshFilter(tokenService),
+            new TokenRefreshFilter(tokenService, new BearerTokenAuthenticationEntryPoint()),
             BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new ExecutionContextAuthenticationFilter(userService, mainAdminConfig, execution),

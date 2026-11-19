@@ -103,8 +103,7 @@ public class CookieTokenService {
       return Optional.empty();
     }
     Optional<OAuth2AccessToken> accessToken = getAccessTokenFromCookie(req);
-    if (accessToken.filter(token -> (token.getExpiresAt() == null)
-        || !Instant.now().isAfter(token.getExpiresAt().minus(REFRESH_SKEW))).isPresent()) {
+    if (accessToken.filter(this::canSkipAccessTokenRefresh).isPresent()) {
       return Optional.empty();
     }
     OAuth2RefreshToken refreshToken = getRefreshToken(req).orElseThrow(() ->
@@ -119,11 +118,21 @@ public class CookieTokenService {
     var result = refreshClient.getTokenResponse(new OAuth2RefreshTokenGrantRequest(
         registration, grantAccessToken, refreshToken));
     OAuth2RefreshToken renewedRefreshToken = result.getRefreshToken();
-    if ((renewedRefreshToken == null)
-        || refreshToken.getTokenValue().equals(renewedRefreshToken.getTokenValue())) {
+    if (shouldRetainOriginalRefreshToken(refreshToken, renewedRefreshToken)) {
       renewedRefreshToken = refreshToken;
     }
     return Optional.of(new RefreshedTokens(result.getAccessToken(), renewedRefreshToken));
+  }
+
+  private boolean canSkipAccessTokenRefresh(OAuth2AccessToken accessToken) {
+    return (accessToken.getExpiresAt() == null)
+        || !Instant.now().isAfter(accessToken.getExpiresAt().minus(REFRESH_SKEW));
+  }
+
+  private boolean shouldRetainOriginalRefreshToken(OAuth2RefreshToken originalToken,
+      @Nullable OAuth2RefreshToken returnedToken) {
+    return (returnedToken == null)
+        || originalToken.getTokenValue().equals(returnedToken.getTokenValue());
   }
 
   public record RefreshedTokens(OAuth2AccessToken accessToken, OAuth2RefreshToken refreshToken) {}
